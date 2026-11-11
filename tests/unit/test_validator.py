@@ -223,3 +223,14 @@ def test_cli_rejects_bad_fixtures(tmp_path: Path, monkeypatch, capsys, name: str
 
     assert main(["story", "--check", str(FIXTURES / name)]) == 1
     assert "[" in capsys.readouterr().err
+
+
+def test_sibling_insights_wins_over_workspace(tmp_path: Path, monkeypatch, capsys) -> None:
+    """同目录的 insights.json 优先于当前工作区, fixture 才不会被无关数据顶掉。"""
+    monkeypatch.chdir(tmp_path)
+    out = tmp_path / ".recapkits" / "out"
+    out.mkdir(parents=True)
+    (out / "insights.json").write_text('{"insights": []}', encoding="utf-8")
+
+    assert main(["story", "--check", str(FIXTURES / "story-valid.json")]) == 0
+    assert "通过" in capsys.readouterr().out

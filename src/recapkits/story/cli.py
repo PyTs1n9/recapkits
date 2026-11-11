@@ -12,15 +12,19 @@ from recapkits.workspace import load_workspace
 
 
 def _insights_path(explicit: str | None, story_path: Path) -> Path:
-    """找 insights.json: --insights 优先, 其次当前工作区, 最后故事文件同目录。"""
+    """找 insights.json: --insights 优先, 其次故事文件同目录, 最后当前工作区。
+
+    同目录优先, 是为了让 fixture 自成一体: 把一份 story 连同它的 insights 拷到
+    任何地方都能校验, 不会被当前目录里无关的工作区数据顶掉。
+    """
     if explicit:
         return Path(explicit).expanduser()
-    workspace = load_workspace()
-    if workspace is not None and workspace.out_path.is_file():
-        return workspace.out_path
     sibling = story_path.parent / "insights.json"
     if sibling.is_file():
         return sibling
+    workspace = load_workspace()
+    if workspace is not None and workspace.out_path.is_file():
+        return workspace.out_path
     raise RecapError("未找到 insights.json: 先运行 recap insights, 或用 --insights 指定")
 
 

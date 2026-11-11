@@ -70,8 +70,8 @@ recap story --check story.json --allow-unknown-names            # 放行实体�
 recap story --check story.json --insights path/to/insights.json # 指定数据源
 ```
 
-`insights.json` 的查找顺序：`--insights` → 当前工作区 `.recapkits/out/insights.json`
-→ 故事文件同目录的 `insights.json`（便于 fixture 自包含）。
+`insights.json` 的查找顺序：`--insights` → 故事文件同目录的 `insights.json`
+→ 当前工作区 `.recapkits/out/insights.json`。同目录优先，是为了让 fixture 自成一体。
 
 ## 长度预算
 
