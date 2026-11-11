@@ -52,6 +52,21 @@ def utc_now_iso() -> str:
     return to_utc_iso(datetime.fromtimestamp(time.time(), UTC))
 
 
+def split_utc_and_offset(text: str) -> tuple[str, int | None]:
+    """把带偏移的 ISO 8601 拆成 (UTC 文本, 偏移分钟)。无偏移时返回 (UTC 文本, None)。
+
+    数据源自带偏移时(如 git 的 `%aI`)应当保留它: 它比用户配置的时区更可信。
+    """
+    raw = text.strip()
+    if raw.endswith(("Z", "z")):
+        raw = raw[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(raw)
+    offset = parsed.utcoffset()
+    if offset is None:
+        return to_utc_iso(parsed.replace(tzinfo=UTC)), None
+    return to_utc_iso(parsed), int(offset.total_seconds() // 60)
+
+
 def local_datetime(ts_utc: str, tz_offset_min: int | None, tz_name: str) -> datetime:
     """返回不带时区的本地墙钟时间; 源自带偏移时优先用偏移, 否则用 IANA 时区名。"""
     utc = parse_utc(ts_utc)
