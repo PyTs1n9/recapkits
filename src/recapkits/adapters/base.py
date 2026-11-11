@@ -19,10 +19,10 @@ class IngestReport:
     units: int
     rows: int
     skipped: int
-    coverage: float
     first_ts: str | None
     last_ts: str | None
     src_hash: str
+    coverage: float | None = None
     warnings: list[str] = field(default_factory=list)
 
 

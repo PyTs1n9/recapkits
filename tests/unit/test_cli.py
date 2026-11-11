@@ -3,7 +3,10 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from recapkits.cli import main
+from recapkits.db import connect
 
 
 def test_init_writes_config_and_gitignore(tmp_path: Path, monkeypatch) -> None:
@@ -76,3 +79,31 @@ def test_bad_date_is_reported_before_adapter_lookup(tmp_path: Path, monkeypatch,
 
     assert main(["import", str(tmp_path), "--source", "git", "--since", "2026/01/01"]) == 1
     assert "YYYY-MM-DD" in capsys.readouterr().err
+
+
+def test_import_report_uses_review_window_coverage(
+    tmp_path: Path, monkeypatch, git_repo: Path
+) -> None:
+    """导入报告的覆盖率与 period.coverage 同一口径: 活跃日 / 窗口天数。"""
+    monkeypatch.chdir(tmp_path)
+    assert main(["init", "--year", "2024"]) == 0
+    assert main(["import", str(git_repo), "--source", "git"]) == 0
+
+    conn = connect(tmp_path / ".recapkits" / "recap.db")
+    try:
+        row = conn.execute("SELECT coverage FROM import_reports").fetchone()
+    finally:
+        conn.close()
+
+    # 3 个活跃日 / 2024 年 366 天
+    assert row["coverage"] == pytest.approx(3 / 366, abs=1e-4)
+
+
+def test_import_report_prints_window(tmp_path: Path, monkeypatch, git_repo: Path, capsys) -> None:
+    """打印的覆盖率必须带上分母, 否则读者会误读。"""
+    monkeypatch.chdir(tmp_path)
+    main(["init", "--year", "2024"])
+    capsys.readouterr()
+
+    assert main(["import", str(git_repo), "--source", "git"]) == 0
+    assert "窗口 2024-01-01 至 2024-12-31" in capsys.readouterr().out

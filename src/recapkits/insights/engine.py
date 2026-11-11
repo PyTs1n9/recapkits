@@ -14,26 +14,36 @@ from recapkits.tz import utc_now_iso
 SHARE_KEYS = frozenset({"share", "top1_share"})
 
 
+def review_window(year: int, today: str | None = None) -> tuple[str, str]:
+    """回顾窗口 (start, end); 当年只到今天, 不跨年。"""
+    start = f"{year}-01-01"
+    return start, min(f"{year}-12-31", today or utc_now_iso()[:10])
+
+
 def build_period(
     conn: sqlite3.Connection, *, tz: str, year: int, today: str | None = None
 ) -> Period:
     """构造统计窗口; 当年只到"今天", 未来年份直接报错。"""
-    start = f"{year}-01-01"
-    end = min(f"{year}-12-31", today or utc_now_iso()[:10])
+    start, end = review_window(year, today)
     if start > end:
         raise ValueError(f"{year} 年尚未开始, 请换一个年份")
-    return Period(start=start, end=end, tz=tz, coverage=_coverage(conn, tz, start, end))
+    return Period(start=start, end=end, tz=tz, coverage=coverage(conn, tz=tz, start=start, end=end))
 
 
-def _coverage(conn: sqlite3.Connection, tz: str, start: str, end: str) -> float:
-    """活跃本地日 / 窗口天数, 0..1; 这是"我们有多少天真的看到了数据"。"""
+def coverage(conn: sqlite3.Connection, *, tz: str, start: str, end: str) -> float:
+    """活跃本地日 / 窗口天数, 0..1; 这是"我们有多少天真的看到了数据"。
+
+    导入报告与 `period.coverage` 共用这一个口径, 不再另算"数据跨度"。
+    """
+    days = (date.fromisoformat(end) - date.fromisoformat(start)).days + 1
+    if days <= 0:
+        return 0.0
     row = conn.execute(
         "SELECT COUNT(DISTINCT local_date) AS n FROM event_local "
         "WHERE tz = ? AND local_date BETWEEN ? AND ?",
         (tz, start, end),
     ).fetchone()
-    days = (date.fromisoformat(end) - date.fromisoformat(start)).days + 1
-    return round(int(row["n"]) / days, 4) if days > 0 else 0.0
+    return round(int(row["n"]) / days, 4)
 
 
 def _concentration_share(insight: Insight) -> float:

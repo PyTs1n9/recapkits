@@ -63,7 +63,7 @@ def _pick_adapter(path: Path, source: str) -> GitAdapter:
     return adapter
 
 
-def _print_report(report: IngestReport, added: int) -> None:
+def _print_report(report: IngestReport, added: int, start: str, end: str) -> None:
     """打印导入报告: 只有计数与时间, 没有任何数据内容。"""
     unit = "仓库" if report.source == "git" else "文件"
     print(f"源        {report.source}")
@@ -73,7 +73,7 @@ def _print_report(report: IngestReport, added: int) -> None:
     print(f"跳过      {report.skipped:,} 条")
     if report.first_ts and report.last_ts:
         print(f"时间范围  {report.first_ts} 至 {report.last_ts}")
-    print(f"覆盖率    {report.coverage:.1%} (活跃天数 / 数据跨度)")
+    print(f"覆盖率    {(report.coverage or 0.0):.1%} (窗口 {start} 至 {end})")
     for warning in report.warnings[:5]:
         print(f"警告      {warning}")
     if len(report.warnings) > 5:
@@ -137,6 +137,8 @@ def cmd_import(args: argparse.Namespace) -> int:
         except (OSError, RuntimeError) as exc:
             raise RecapError(str(exc)) from exc
         rebuild_local(conn, workspace.tz)
+        start, end = engine.review_window(workspace.year)
+        report.coverage = engine.coverage(conn, tz=workspace.tz, start=start, end=end)
         insert_import_report(
             conn,
             source=report.source,
@@ -147,7 +149,7 @@ def cmd_import(args: argparse.Namespace) -> int:
             coverage=report.coverage,
             created_at=utc_now_iso(),
         )
-        _print_report(report, count_events(conn) - before)
+        _print_report(report, count_events(conn) - before, start, end)
     finally:
         conn.close()
     return 0

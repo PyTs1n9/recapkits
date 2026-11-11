@@ -152,7 +152,6 @@ class GitAdapter:
 
         events: list[Event] = []
         warnings: list[str] = []
-        active_days: set[str] = set()
         skipped = 0
 
         for repo in repos:
@@ -176,7 +175,6 @@ class GitAdapter:
                     skipped += 1
                     continue
                 events.append(event)
-                active_days.add(local_day)
             if bad_lines:
                 skipped += bad_lines
                 warnings.append(f"{repo.name}: 跳过 {bad_lines} 行无法解析的提交")
@@ -188,7 +186,6 @@ class GitAdapter:
             units=len(repos),
             rows=len(events),
             skipped=skipped,
-            coverage=_coverage(active_days, since, until),
             first_ts=min(stamps) if stamps else None,
             last_ts=max(stamps) if stamps else None,
             src_hash=hashlib.sha256(
@@ -196,15 +193,3 @@ class GitAdapter:
             ).hexdigest()[:16],
             warnings=warnings,
         )
-
-
-def _coverage(active_days: set[str], since: date | None, until: date | None) -> float:
-    """活跃天数 / 跨度天数; 给了完整窗口就用窗口当天数。"""
-    if not active_days:
-        return 0.0
-    first = since or date.fromisoformat(min(active_days))
-    last = until or date.fromisoformat(max(active_days))
-    span = (last - first).days + 1
-    if span <= 0:
-        return 0.0
-    return round(min(1.0, len(active_days) / span), 4)
