@@ -10,6 +10,18 @@ uvx recapkits import ~/code --source git
 uvx recapkits insights --top 10
 ```
 
+## 本地工具链
+
+uv 跟着项目走，不依赖全局安装：
+
+```bash
+./uv sync                 # Git Bash / WSL：仓库根的 uv 入口
+uv sync                   # cmd：在仓库根目录会命中 uv.cmd
+. .\scripts\env.ps1       # PowerShell：把 .tools\uv 与 .venv 前置到本次会话 PATH
+```
+
+`.tools/` 不入库（uv 二进制约 31 MB）。换机后执行一次 `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1` 即可就位并同步依赖。
+
 ## 隐私
 
 全程在本机完成：不上传、不遥测、不登录，核心代码不发起任何网络请求。所有中间产物只落在当前目录的 `.recapkits/`，可随时删除。

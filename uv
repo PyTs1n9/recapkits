@@ -1,0 +1,3 @@
+#!/bin/sh
+# 项目内 uv 入口: Git Bash / WSL 下 `./uv ...` 走 .tools/uv/uv.exe。
+exec "$(dirname "$0")/.tools/uv/uv.exe" "$@"
