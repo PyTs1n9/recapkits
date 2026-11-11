@@ -1,23 +1,19 @@
-"""端到端: 临时 git 仓库 -> events -> insights.json 快照。
+"""git 适配器端到端: 临时仓库 -> events -> 洞察。
 
-仓库用 `--allow-empty` 建, 提交哈希只取决于作者/提交时间与消息, 因此在
-Windows / macOS / Linux 上得到同一批哈希, 快照可以跨平台比对。
+仓库用 `--allow-empty` 建, 提交哈希只取决于作者/提交时间与消息, 三平台一致。
+黄金语料与快照在 test_corpus.py, 这里只验证适配器与薄数据闸门的衔接。
 """
 
-import json
-import os
 import subprocess
 from pathlib import Path
 
 from recapkits.adapters.git_local import GitAdapter, find_repos
 from recapkits.db import connect, count_events, init_schema
-from recapkits.emit import render
 from recapkits.insights import engine
 from recapkits.tz import rebuild_local
 
 TZ = "Asia/Shanghai"
 YEAR = 2024
-SNAPSHOT = Path(__file__).parent / "snapshots" / "git_year_2024.insights.json"
 
 
 def test_detect_scores(tmp_path: Path, git_repo: Path) -> None:
@@ -98,26 +94,19 @@ def test_empty_repo_is_tolerated(tmp_path: Path) -> None:
         conn.close()
 
 
-def test_git_pipeline_matches_snapshot(tmp_path: Path, git_repo: Path) -> None:
-    """端到端: 导入 -> 重建本地层 -> 洞察 -> insights.json 逐字节比对。"""
+def test_git_pipeline_is_marked_insufficient(tmp_path: Path, git_repo: Path) -> None:
+    """三次提交、三个活跃日: 端到端跑通, 并如实标成数据不足。"""
     conn = connect(tmp_path / "recap.db")
     init_schema(conn)
     try:
         GitAdapter().ingest(git_repo, conn)
         rebuild_local(conn, TZ)
-        candidates = engine.run(conn, tz=TZ, year=YEAR)
-        selected = engine.select(candidates, top=10)
-        payload = render(selected, sources=["git"], event_count=count_events(conn), tz=TZ)
-        actual = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+        found = engine.run(conn, tz=TZ, year=YEAR)
 
-        for insight in candidates:
+        assert [insight.kind for insight in found] == ["vol.total"]
+        assert found[0].data_sufficiency == "insufficient"
+        for insight in found:
             rows = conn.execute(insight.evidence_sql).fetchall()
             assert len(rows) == insight.evidence_rows
     finally:
         conn.close()
-
-    if os.environ.get("RECAP_UPDATE_SNAPSHOT") == "1":
-        SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
-        SNAPSHOT.write_text(actual, encoding="utf-8")
-
-    assert actual == SNAPSHOT.read_text(encoding="utf-8")

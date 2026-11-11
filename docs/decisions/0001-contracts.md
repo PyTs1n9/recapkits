@@ -2,8 +2,10 @@
 
 - 状态：**已冻结**（2026-11-11）
 - 变更策略：**不新增表、字段、JSON key**。任何扩展先讨论，不得由实现侧自行决定。
+- 变更记录：
+  - 2026-11-11 阶段 4a：`insights.json` 每条洞察新增 `data_sufficiency` 与 `gated` 两个键，用于标注「数据量闸门」；`score_parts` 保留被置零的分量，其余字段未动。原因：薄数据下 `concentration` 与 `discontinuity` 会奖励「数据少」，需要可解释地关闭。
 
-本文件是四个契约的唯一事实源。以下内容在 `PROMPT-起步.md` §5 中定义为「照抄，不是参考」，因此**逐字抄录，不做改写、不在示例上增删字段**。
+本文件是四个契约的唯一事实源。以下内容在 `PROMPT-起步.md` §5 中定义为「照抄，不是参考」，因此**逐字抄录，不做改写、不在示例上增删字段**（上述变更记录授权的两个键除外）。
 
 ---
 
@@ -94,6 +96,8 @@ CREATE TABLE IF NOT EXISTS build (
       "score_parts": { "deviation": 0.0, "rarity": 0.0, "discontinuity": 0.5, "concentration": 0.4, "obviousness": -0.45, "sensitivity": 0.0 },
       "novelty": "record",
       "sensitivity": "low",
+      "data_sufficiency": "ok",
+      "gated": [],
       "caveats": ["仅统计作者日期在 2026 年内的非合并提交"]
     }
   ]
@@ -101,6 +105,14 @@ CREATE TABLE IF NOT EXISTS build (
 ```
 
 `display` 是**唯一允许被文案引用的形态**。`evidence_sql` 必须能直接执行并被测试验证。
+
+**`data_sufficiency` 与 `gated`（阶段 4a 新增）**
+
+- `data_sufficiency` 取值 `insufficient` / `thin` / `ok`，由活跃天数与事件数决定：
+  `活跃日 < 3 或 事件 < 20` 为 `insufficient`，`活跃日 < 30` 为 `thin`，其余为 `ok`。
+- `insufficient` 时只保留 `vol.total` 一条洞察，其余丢弃，并在 `caveats` 追加数据量说明。
+- `gated` 列出被数据量闸门关闭的分量（`concentration` / `discontinuity`），顺序固定。
+  被关闭的分量**仍然保留在 `score_parts` 里，值为 `0.0`**，`score` 依旧是六个分量之和。
 
 ---
 

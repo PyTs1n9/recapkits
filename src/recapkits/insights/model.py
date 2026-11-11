@@ -46,4 +46,6 @@ class Insight:
     score_parts: dict[str, float]
     novelty: str
     sensitivity: str
+    data_sufficiency: str
+    gated: list[str]
     caveats: list[str]

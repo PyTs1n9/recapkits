@@ -51,12 +51,28 @@ def kinds_of(insights: list) -> set[str]:
 
 
 def test_thin_data_yields_only_volume(conn) -> None:
-    """只有 5 个活跃日、10 条事件: 只剩体量类, 节律与集中度都不出。"""
+    """只有 5 个活跃日、10 条事件: 充足度 insufficient, 只剩一条 vol.total。"""
     seed(conn, range(5))
 
     found = engine.run(conn, tz=TZ, year=YEAR)
 
+    assert kinds_of(found) == {"vol.total"}
+    assert found[0].data_sufficiency == "insufficient"
+    assert found[0].gated == ["concentration", "discontinuity"]
+    assert any("数据量不足" in caveat for caveat in found[0].caveats)
+
+
+def test_thin_level_keeps_detectors_but_gates_discontinuity(conn) -> None:
+    """20 个活跃日、40 条事件: 充足度 thin, 体量类保留, 但 discontinuity 被关掉。"""
+    seed(conn, range(20))
+
+    found = engine.run(conn, tz=TZ, year=YEAR)
+
     assert kinds_of(found) == {"vol.total", "vol.busiest_day"}
+    assert {item.data_sufficiency for item in found} == {"thin"}
+    assert {tuple(item.gated) for item in found} == {("discontinuity",)}
+    for item in found:
+        assert item.score_parts["discontinuity"] == 0.0
 
 
 def test_forty_active_days_yield_all_seven_kinds(conn) -> None:

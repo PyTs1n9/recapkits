@@ -70,5 +70,14 @@ def make_insight(
         score_parts={},
         novelty=novelty,
         sensitivity="low",
+        data_sufficiency="ok",
+        gated=[],
         caveats=caveats,
     )
+
+
+def period_stats(conn: sqlite3.Connection, source: str, period: Period) -> tuple[int, int]:
+    """(事件数, 活跃天数); 数据充足度与闸门都吃这两个数。"""
+    sql = "SELECT COUNT(*) AS n, COUNT(DISTINCT l.local_date) AS d " + scope(source, period)
+    row = conn.execute(sql).fetchone()
+    return int(row["n"]), int(row["d"])

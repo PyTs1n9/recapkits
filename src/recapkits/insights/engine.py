@@ -6,7 +6,7 @@ from datetime import date
 
 from recapkits.db import list_sources
 from recapkits.insights import scoring
-from recapkits.insights.detectors import generic
+from recapkits.insights.detectors import common, generic
 from recapkits.insights.model import Insight, Period
 from recapkits.tz import utc_now_iso
 
@@ -57,6 +57,15 @@ def _concentration_share(insight: Insight) -> float:
     return 0.0
 
 
+def source_stats(conn: sqlite3.Connection, period: Period) -> dict[str, tuple[int, int]]:
+    """每个源的 (事件数, 活跃天数); CLI 用它解释数据充足度。"""
+    return {
+        source: common.period_stats(conn, source, period)
+        for source, count in list_sources(conn)
+        if count > 0
+    }
+
+
 def run(conn: sqlite3.Connection, *, tz: str, year: int, today: str | None = None) -> list[Insight]:
     """跑所有源的检测器并打分, 返回全部候选(未截断)。"""
     period = build_period(conn, tz=tz, year=year, today=today)
@@ -64,14 +73,30 @@ def run(conn: sqlite3.Connection, *, tz: str, year: int, today: str | None = Non
     for source, count in list_sources(conn):
         if count == 0:
             continue
+        events, active_days = common.period_stats(conn, source, period)
+        level = scoring.sufficiency(events, active_days)
+        gated = scoring.gated_components(events, active_days)
         for insight in generic.detect(conn, source=source, period=period):
+            if level == "insufficient" and insight.kind != "vol.total":
+                continue
             parts = scoring.score_parts(
                 kind=insight.kind,
                 novelty=insight.novelty,
                 top1_share=_concentration_share(insight),
                 sensitivity=insight.sensitivity,
+                gated=gated,
             )
-            candidates.append(replace(insight, score=scoring.total(parts), score_parts=parts))
+            scored = replace(
+                insight,
+                score=scoring.total(parts),
+                score_parts=parts,
+                data_sufficiency=level,
+                gated=gated,
+            )
+            if level == "insufficient":
+                note = f"数据量不足（{events} 条事件 / {active_days} 个活跃日），本回顾仅供参考"  # noqa: RUF001
+                scored = replace(scored, caveats=[*scored.caveats, note])
+            candidates.append(scored)
     return candidates
 
 

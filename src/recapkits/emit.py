@@ -41,6 +41,8 @@ def _insight(insight: Insight) -> dict[str, object]:
         "score_parts": dict(insight.score_parts),
         "novelty": insight.novelty,
         "sensitivity": insight.sensitivity,
+        "data_sufficiency": insight.data_sufficiency,
+        "gated": list(insight.gated),
         "caveats": list(insight.caveats),
     }
 
