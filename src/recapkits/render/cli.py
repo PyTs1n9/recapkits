@@ -50,7 +50,9 @@ def cmd_render(args: argparse.Namespace) -> int:
         else _default_out(story_path, source.story.meta.year)
     )
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(html, encoding="utf-8")
+    # 写字节而不是 write_text: 后者在 Windows 会把 \n 翻成 \r\n, 产物字节数随平台变化。
+    # 这个项目要求跨平台一致, 行尾必须由我们决定而不是由平台决定。
+    out.write_bytes(html.encode("utf-8"))
 
     size = len(html.encode("utf-8"))
     print(f"已写入 {out.resolve()}")
