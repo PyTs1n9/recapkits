@@ -5,6 +5,7 @@
 
 import sqlite3
 
+from recapkits.insights import scoring
 from recapkits.insights.detectors import temporal
 from recapkits.insights.detectors.common import (
     MIN_ACTIVE_DAYS,
@@ -69,6 +70,7 @@ def _vol_total(
             sql=sql,
             rows=1,
             novelty="constant",
+            signal=scoring.signal_vol_total(),
             caveats=standard_caveats(period),
         )
     ]
@@ -83,6 +85,7 @@ def _vol_busiest_day(daily: list[tuple[str, int]], source: str, period: Period) 
 
     total_events = sum(count for _, count in daily)
     share = best_count / total_events
+    daily_avg = total_events / len(daily)
     sql = (
         "SELECT l.local_date AS d, COUNT(*) AS n "
         + scope(source, period)
@@ -103,6 +106,7 @@ def _vol_busiest_day(daily: list[tuple[str, int]], source: str, period: Period) 
             sql=sql,
             rows=1,
             novelty="record",
+            signal=scoring.signal_busiest_day(best_count, daily_avg),
             caveats=standard_caveats(period, "并列时取更早的一天"),
         )
     ]
@@ -143,6 +147,7 @@ def _conc_top_entity(
             sql=sql,
             rows=len(rows),
             novelty="constant",
+            signal=scoring.signal_top_entity(top_share),
             caveats=standard_caveats(
                 period,
                 "实体口径: 副标题优先, 缺失时退回标题",

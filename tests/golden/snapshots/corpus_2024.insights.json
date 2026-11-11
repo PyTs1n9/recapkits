@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "build_id": "b3:60bdae9b",
+  "build_id": "b3:9a53b700",
   "generated_from": {
     "sources": [
       "git"
@@ -10,8 +10,8 @@
   },
   "insights": [
     {
-      "id": "vol.busiest_day:git:2024:2024-03-18",
-      "kind": "vol.busiest_day",
+      "id": "conc.top_entity:repo:alpha:2024",
+      "kind": "conc.top_entity",
       "source": "git",
       "period": {
         "start": "2024-01-01",
@@ -20,173 +20,76 @@
         "coverage": 0.1257
       },
       "headline_fact": {
-        "key": "events",
-        "label": "单日最多事件",
-        "value": 6,
-        "unit": "count",
-        "display": "6"
+        "key": "share",
+        "label": "占全部事件的比重",
+        "value": 0.6227,
+        "unit": "pct",
+        "display": "62%"
       },
       "facts": [
         {
-          "key": "date",
-          "label": "日期",
-          "value": "2024-03-18",
-          "unit": "date",
-          "display": "2024-03-18"
+          "key": "rank_1",
+          "label": "alpha",
+          "value": 137,
+          "unit": "count",
+          "display": "137"
         },
         {
-          "key": "events",
-          "label": "当日事件数",
-          "value": 6,
+          "key": "rank_2",
+          "label": "beta",
+          "value": 21,
           "unit": "count",
-          "display": "6"
+          "display": "21"
+        },
+        {
+          "key": "rank_3",
+          "label": "delta",
+          "value": 21,
+          "unit": "count",
+          "display": "21"
+        },
+        {
+          "key": "rank_4",
+          "label": "gamma",
+          "value": 21,
+          "unit": "count",
+          "display": "21"
+        },
+        {
+          "key": "rank_5",
+          "label": "epsilon",
+          "value": 20,
+          "unit": "count",
+          "display": "20"
         },
         {
           "key": "share",
           "label": "占全部事件的比重",
-          "value": 0.0273,
+          "value": 0.6227,
           "unit": "pct",
-          "display": "3%"
+          "display": "62%"
         }
       ],
-      "evidence_sql": "SELECT l.local_date AS d, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY l.local_date ORDER BY n DESC, d ASC LIMIT 1",
-      "evidence_rows": 1,
-      "score": 0.5218,
+      "evidence_sql": "SELECT COALESCE(NULLIF(e.subtitle, ''), NULLIF(e.title, ''), '(未命名)') AS entity, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY entity ORDER BY n DESC, entity ASC",
+      "evidence_rows": 5,
+      "score": 0.7045,
       "score_parts": {
+        "signal": 0.7045,
         "deviation": 0.0,
-        "rarity": 0.0,
-        "discontinuity": 0.5,
-        "concentration": 0.0218,
-        "obviousness": 0.0,
+        "discontinuity": 0.0,
         "sensitivity": 0.0
       },
-      "novelty": "record",
+      "novelty": "constant",
       "sensitivity": "low",
       "data_sufficiency": "ok",
-      "gated": [],
-      "caveats": [
-        "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
-        "并列时取更早的一天"
-      ]
-    },
-    {
-      "id": "disc.longest_gap:git:2024:2024-03-10",
-      "kind": "disc.longest_gap",
-      "source": "git",
-      "period": {
-        "start": "2024-01-01",
-        "end": "2024-12-31",
-        "tz": "Asia/Shanghai",
-        "coverage": 0.1257
-      },
-      "headline_fact": {
-        "key": "days",
-        "label": "最长空档天数",
-        "value": 7,
-        "unit": "count",
-        "display": "7 天"
-      },
-      "facts": [
-        {
-          "key": "days",
-          "label": "空档天数",
-          "value": 7,
-          "unit": "count",
-          "display": "7 天"
-        },
-        {
-          "key": "start",
-          "label": "起始日",
-          "value": "2024-03-10",
-          "unit": "date",
-          "display": "2024-03-10"
-        },
-        {
-          "key": "end",
-          "label": "结束日",
-          "value": "2024-03-16",
-          "unit": "date",
-          "display": "2024-03-16"
-        }
+      "gated": [
+        "deviation",
+        "discontinuity"
       ],
-      "evidence_sql": "SELECT l.local_date AS d, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY l.local_date ORDER BY l.local_date",
-      "evidence_rows": 46,
-      "score": 0.5,
-      "score_parts": {
-        "deviation": 0.0,
-        "rarity": 0.0,
-        "discontinuity": 0.5,
-        "concentration": 0.0,
-        "obviousness": 0.0,
-        "sensitivity": 0.0
-      },
-      "novelty": "absence",
-      "sensitivity": "low",
-      "data_sufficiency": "ok",
-      "gated": [],
       "caveats": [
         "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
-        "只统计窗口内部的空档, 不含窗口两端"
-      ]
-    },
-    {
-      "id": "disc.longest_streak:git:2024:2024-05-01",
-      "kind": "disc.longest_streak",
-      "source": "git",
-      "period": {
-        "start": "2024-01-01",
-        "end": "2024-12-31",
-        "tz": "Asia/Shanghai",
-        "coverage": 0.1257
-      },
-      "headline_fact": {
-        "key": "days",
-        "label": "最长连续活跃天数",
-        "value": 21,
-        "unit": "count",
-        "display": "21 天"
-      },
-      "facts": [
-        {
-          "key": "days",
-          "label": "连续天数",
-          "value": 21,
-          "unit": "count",
-          "display": "21 天"
-        },
-        {
-          "key": "start",
-          "label": "起始日",
-          "value": "2024-05-01",
-          "unit": "date",
-          "display": "2024-05-01"
-        },
-        {
-          "key": "end",
-          "label": "结束日",
-          "value": "2024-05-21",
-          "unit": "date",
-          "display": "2024-05-21"
-        }
-      ],
-      "evidence_sql": "SELECT l.local_date AS d, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY l.local_date ORDER BY l.local_date",
-      "evidence_rows": 46,
-      "score": 0.5,
-      "score_parts": {
-        "deviation": 0.0,
-        "rarity": 0.0,
-        "discontinuity": 0.5,
-        "concentration": 0.0,
-        "obviousness": 0.0,
-        "sensitivity": 0.0
-      },
-      "novelty": "record",
-      "sensitivity": "low",
-      "data_sufficiency": "ok",
-      "gated": [],
-      "caveats": [
-        "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
-        "按本地日期去重后计算, 同日多次事件只算一天"
+        "实体口径: 副标题优先, 缺失时退回标题",
+        "Top-5 按事件数降序, 同数按名称升序"
       ]
     },
     {
@@ -392,22 +295,145 @@
       ],
       "evidence_sql": "SELECT l.local_hour AS h, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY l.local_hour ORDER BY l.local_hour",
       "evidence_rows": 14,
-      "score": 0.0,
+      "score": 0.7045,
       "score_parts": {
+        "signal": 0.7045,
         "deviation": 0.0,
-        "rarity": 0.0,
         "discontinuity": 0.0,
-        "concentration": 0.0,
-        "obviousness": 0.0,
         "sensitivity": 0.0
       },
       "novelty": "constant",
       "sensitivity": "low",
       "data_sufficiency": "ok",
-      "gated": [],
+      "gated": [
+        "deviation",
+        "discontinuity"
+      ],
       "caveats": [
         "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
         "本地小时由 tz.py 从 UTC 换算, 源带偏移时优先用偏移"
+      ]
+    },
+    {
+      "id": "disc.longest_streak:git:2024:2024-05-01",
+      "kind": "disc.longest_streak",
+      "source": "git",
+      "period": {
+        "start": "2024-01-01",
+        "end": "2024-12-31",
+        "tz": "Asia/Shanghai",
+        "coverage": 0.1257
+      },
+      "headline_fact": {
+        "key": "days",
+        "label": "最长连续活跃天数",
+        "value": 21,
+        "unit": "count",
+        "display": "21 天"
+      },
+      "facts": [
+        {
+          "key": "days",
+          "label": "连续天数",
+          "value": 21,
+          "unit": "count",
+          "display": "21 天"
+        },
+        {
+          "key": "start",
+          "label": "起始日",
+          "value": "2024-05-01",
+          "unit": "date",
+          "display": "2024-05-01"
+        },
+        {
+          "key": "end",
+          "label": "结束日",
+          "value": "2024-05-21",
+          "unit": "date",
+          "display": "2024-05-21"
+        }
+      ],
+      "evidence_sql": "SELECT l.local_date AS d, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY l.local_date ORDER BY l.local_date",
+      "evidence_rows": 46,
+      "score": 0.35,
+      "score_parts": {
+        "signal": 0.35,
+        "deviation": 0.0,
+        "discontinuity": 0.0,
+        "sensitivity": 0.0
+      },
+      "novelty": "record",
+      "sensitivity": "low",
+      "data_sufficiency": "ok",
+      "gated": [
+        "deviation",
+        "discontinuity"
+      ],
+      "caveats": [
+        "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
+        "按本地日期去重后计算, 同日多次事件只算一天"
+      ]
+    },
+    {
+      "id": "disc.longest_gap:git:2024:2024-03-10",
+      "kind": "disc.longest_gap",
+      "source": "git",
+      "period": {
+        "start": "2024-01-01",
+        "end": "2024-12-31",
+        "tz": "Asia/Shanghai",
+        "coverage": 0.1257
+      },
+      "headline_fact": {
+        "key": "days",
+        "label": "最长空档天数",
+        "value": 7,
+        "unit": "count",
+        "display": "7 天"
+      },
+      "facts": [
+        {
+          "key": "days",
+          "label": "空档天数",
+          "value": 7,
+          "unit": "count",
+          "display": "7 天"
+        },
+        {
+          "key": "start",
+          "label": "起始日",
+          "value": "2024-03-10",
+          "unit": "date",
+          "display": "2024-03-10"
+        },
+        {
+          "key": "end",
+          "label": "结束日",
+          "value": "2024-03-16",
+          "unit": "date",
+          "display": "2024-03-16"
+        }
+      ],
+      "evidence_sql": "SELECT l.local_date AS d, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY l.local_date ORDER BY l.local_date",
+      "evidence_rows": 46,
+      "score": 0.3333,
+      "score_parts": {
+        "signal": 0.3333,
+        "deviation": 0.0,
+        "discontinuity": 0.0,
+        "sensitivity": 0.0
+      },
+      "novelty": "absence",
+      "sensitivity": "low",
+      "data_sufficiency": "ok",
+      "gated": [
+        "deviation",
+        "discontinuity"
+      ],
+      "caveats": [
+        "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
+        "只统计窗口内部的空档, 不含窗口两端"
       ]
     },
     {
@@ -487,104 +513,23 @@
       ],
       "evidence_sql": "SELECT CAST(strftime('%w', l.local_date) AS INTEGER) AS wd, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY wd ORDER BY wd",
       "evidence_rows": 7,
-      "score": 0.0,
+      "score": 0.1515,
       "score_parts": {
+        "signal": 0.1515,
         "deviation": 0.0,
-        "rarity": 0.0,
         "discontinuity": 0.0,
-        "concentration": 0.0,
-        "obviousness": 0.0,
         "sensitivity": 0.0
       },
       "novelty": "constant",
       "sensitivity": "low",
       "data_sufficiency": "ok",
-      "gated": [],
+      "gated": [
+        "deviation",
+        "discontinuity"
+      ],
       "caveats": [
         "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
         "星期由本地日期推出, 周一起算"
-      ]
-    },
-    {
-      "id": "conc.top_entity:repo:alpha:2024",
-      "kind": "conc.top_entity",
-      "source": "git",
-      "period": {
-        "start": "2024-01-01",
-        "end": "2024-12-31",
-        "tz": "Asia/Shanghai",
-        "coverage": 0.1257
-      },
-      "headline_fact": {
-        "key": "share",
-        "label": "占全部事件的比重",
-        "value": 0.6227,
-        "unit": "pct",
-        "display": "62%"
-      },
-      "facts": [
-        {
-          "key": "rank_1",
-          "label": "alpha",
-          "value": 137,
-          "unit": "count",
-          "display": "137"
-        },
-        {
-          "key": "rank_2",
-          "label": "beta",
-          "value": 21,
-          "unit": "count",
-          "display": "21"
-        },
-        {
-          "key": "rank_3",
-          "label": "delta",
-          "value": 21,
-          "unit": "count",
-          "display": "21"
-        },
-        {
-          "key": "rank_4",
-          "label": "gamma",
-          "value": 21,
-          "unit": "count",
-          "display": "21"
-        },
-        {
-          "key": "rank_5",
-          "label": "epsilon",
-          "value": 20,
-          "unit": "count",
-          "display": "20"
-        },
-        {
-          "key": "share",
-          "label": "占全部事件的比重",
-          "value": 0.6227,
-          "unit": "pct",
-          "display": "62%"
-        }
-      ],
-      "evidence_sql": "SELECT COALESCE(NULLIF(e.subtitle, ''), NULLIF(e.title, ''), '(未命名)') AS entity, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY entity ORDER BY n DESC, entity ASC",
-      "evidence_rows": 5,
-      "score": -0.05,
-      "score_parts": {
-        "deviation": 0.0,
-        "rarity": 0.0,
-        "discontinuity": 0.0,
-        "concentration": 0.4,
-        "obviousness": -0.45,
-        "sensitivity": 0.0
-      },
-      "novelty": "constant",
-      "sensitivity": "low",
-      "data_sufficiency": "ok",
-      "gated": [],
-      "caveats": [
-        "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
-        "实体口径: 副标题优先, 缺失时退回标题",
-        "Top-5 按事件数降序, 同数按名称升序"
       ]
     },
     {
@@ -629,21 +574,83 @@
       ],
       "evidence_sql": "SELECT COUNT(*) AS n, COALESCE(SUM(e.duration_s), 0.0) AS seconds FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31'",
       "evidence_rows": 1,
-      "score": -0.45,
+      "score": 0.05,
       "score_parts": {
+        "signal": 0.05,
         "deviation": 0.0,
-        "rarity": 0.0,
         "discontinuity": 0.0,
-        "concentration": 0.0,
-        "obviousness": -0.45,
         "sensitivity": 0.0
       },
       "novelty": "constant",
       "sensitivity": "low",
       "data_sufficiency": "ok",
-      "gated": [],
+      "gated": [
+        "deviation",
+        "discontinuity"
+      ],
       "caveats": [
         "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%"
+      ]
+    },
+    {
+      "id": "vol.busiest_day:git:2024:2024-03-18",
+      "kind": "vol.busiest_day",
+      "source": "git",
+      "period": {
+        "start": "2024-01-01",
+        "end": "2024-12-31",
+        "tz": "Asia/Shanghai",
+        "coverage": 0.1257
+      },
+      "headline_fact": {
+        "key": "events",
+        "label": "单日最多事件",
+        "value": 6,
+        "unit": "count",
+        "display": "6"
+      },
+      "facts": [
+        {
+          "key": "date",
+          "label": "日期",
+          "value": "2024-03-18",
+          "unit": "date",
+          "display": "2024-03-18"
+        },
+        {
+          "key": "events",
+          "label": "当日事件数",
+          "value": 6,
+          "unit": "count",
+          "display": "6"
+        },
+        {
+          "key": "share",
+          "label": "占全部事件的比重",
+          "value": 0.0273,
+          "unit": "pct",
+          "display": "3%"
+        }
+      ],
+      "evidence_sql": "SELECT l.local_date AS d, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY l.local_date ORDER BY n DESC, d ASC LIMIT 1",
+      "evidence_rows": 1,
+      "score": 0.0,
+      "score_parts": {
+        "signal": 0.0,
+        "deviation": 0.0,
+        "discontinuity": 0.0,
+        "sensitivity": 0.0
+      },
+      "novelty": "record",
+      "sensitivity": "low",
+      "data_sufficiency": "ok",
+      "gated": [
+        "deviation",
+        "discontinuity"
+      ],
+      "caveats": [
+        "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
+        "并列时取更早的一天"
       ]
     }
   ]

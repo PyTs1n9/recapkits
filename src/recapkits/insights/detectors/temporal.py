@@ -7,6 +7,7 @@
 import sqlite3
 from datetime import date, timedelta
 
+from recapkits.insights import scoring
 from recapkits.insights.detectors.common import make_insight, scope, standard_caveats
 from recapkits.insights.model import Fact, Insight, Period
 
@@ -75,6 +76,7 @@ def _hour_rhythm(
             sql=sql,
             rows=len(rows),
             novelty="constant",
+            signal=scoring.signal_hour_rhythm(late_share),
             caveats=standard_caveats(period, "本地小时由 tz.py 从 UTC 换算, 源带偏移时优先用偏移"),
         )
     ]
@@ -94,6 +96,7 @@ def _weekday_rhythm(conn: sqlite3.Connection, source: str, period: Period) -> li
 
     busiest = counts.index(max(counts))
     total = sum(counts)
+    busiest_share = counts[busiest] / total
     facts = [
         Fact(f"wd_{index + 1}", WEEKDAY_LABELS[index], counts[index], "count", f"{counts[index]:,}")
         for index in range(7)
@@ -102,9 +105,9 @@ def _weekday_rhythm(conn: sqlite3.Connection, source: str, period: Period) -> li
         Fact(
             "busiest_share",
             "最活跃星期的比重",
-            round(counts[busiest] / total, 4),
+            round(busiest_share, 4),
             "pct",
-            f"{counts[busiest] / total:.0%}",
+            f"{busiest_share:.0%}",
         )
     )
 
@@ -125,6 +128,7 @@ def _weekday_rhythm(conn: sqlite3.Connection, source: str, period: Period) -> li
             sql=sql,
             rows=len(rows),
             novelty="constant",
+            signal=scoring.signal_weekday_rhythm(busiest_share),
             caveats=standard_caveats(period, "星期由本地日期推出, 周一起算"),
         )
     ]
@@ -165,6 +169,7 @@ def _longest_streak(daily: list[tuple[str, int]], source: str, period: Period) -
             sql=sql,
             rows=len(daily),
             novelty="record",
+            signal=scoring.signal_streak(best[0]),
             caveats=standard_caveats(period, "按本地日期去重后计算, 同日多次事件只算一天"),
         )
     ]
@@ -207,6 +212,7 @@ def _longest_gap(daily: list[tuple[str, int]], source: str, period: Period) -> l
             sql=sql,
             rows=len(daily),
             novelty="absence",
+            signal=scoring.signal_gap(best_days),
             caveats=standard_caveats(period, "只统计窗口内部的空档, 不含窗口两端"),
         )
     ]

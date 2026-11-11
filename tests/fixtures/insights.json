@@ -26,19 +26,17 @@
       ],
       "evidence_sql": "SELECT 1",
       "evidence_rows": 1,
-      "score": -0.45,
+      "score": 0.05,
       "score_parts": {
+        "signal": 0.05,
         "deviation": 0.0,
-        "rarity": 0.0,
         "discontinuity": 0.0,
-        "concentration": 0.0,
-        "obviousness": -0.45,
         "sensitivity": 0.0
       },
       "novelty": "constant",
       "sensitivity": "low",
       "data_sufficiency": "ok",
-      "gated": [],
+      "gated": ["deviation", "discontinuity"],
       "caveats": []
     },
     {
@@ -63,19 +61,17 @@
       ],
       "evidence_sql": "SELECT 1",
       "evidence_rows": 1,
-      "score": -0.05,
+      "score": 0.7045,
       "score_parts": {
+        "signal": 0.7045,
         "deviation": 0.0,
-        "rarity": 0.0,
         "discontinuity": 0.0,
-        "concentration": 0.4,
-        "obviousness": -0.45,
         "sensitivity": 0.0
       },
       "novelty": "constant",
       "sensitivity": "low",
       "data_sufficiency": "ok",
-      "gated": [],
+      "gated": ["deviation", "discontinuity"],
       "caveats": []
     },
     {
@@ -100,19 +96,17 @@
       ],
       "evidence_sql": "SELECT 1",
       "evidence_rows": 1,
-      "score": 0.4,
+      "score": 0.4667,
       "score_parts": {
+        "signal": 0.4667,
         "deviation": 0.0,
-        "rarity": 0.0,
         "discontinuity": 0.0,
-        "concentration": 0.4,
-        "obviousness": -0.45,
         "sensitivity": 0.0
       },
       "novelty": "constant",
       "sensitivity": "high",
       "data_sufficiency": "ok",
-      "gated": [],
+      "gated": ["deviation", "discontinuity"],
       "caveats": []
     }
   ]

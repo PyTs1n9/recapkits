@@ -10,8 +10,8 @@ from recapkits.insights.detectors import common, generic
 from recapkits.insights.model import Insight, Period
 from recapkits.tz import utc_now_iso
 
-#: headline 或 facts 里带这些 key 的洞察, 其值参与 concentration 计算。
-SHARE_KEYS = frozenset({"share", "top1_share"})
+#: 本期没有上一期数据, 同比类分量一律关闭; 阶段 6 接入上一期后改成 True。
+HAS_PREVIOUS = False
 
 
 def review_window(year: int, today: str | None = None) -> tuple[str, str]:
@@ -46,17 +46,6 @@ def coverage(conn: sqlite3.Connection, *, tz: str, start: str, end: str) -> floa
     return round(int(row["n"]) / days, 4)
 
 
-def _concentration_share(insight: Insight) -> float:
-    """取 headline 的 share; 没有则退回 facts 里第一个 share。"""
-    headline = insight.headline_fact
-    if headline.key in SHARE_KEYS and isinstance(headline.value, float):
-        return headline.value
-    for fact in insight.facts:
-        if fact.key in SHARE_KEYS and isinstance(fact.value, float):
-            return fact.value
-    return 0.0
-
-
 def source_stats(conn: sqlite3.Connection, period: Period) -> dict[str, tuple[int, int]]:
     """每个源的 (事件数, 活跃天数); CLI 用它解释数据充足度。"""
     return {
@@ -69,20 +58,19 @@ def source_stats(conn: sqlite3.Connection, period: Period) -> dict[str, tuple[in
 def run(conn: sqlite3.Connection, *, tz: str, year: int, today: str | None = None) -> list[Insight]:
     """跑所有源的检测器并打分, 返回全部候选(未截断)。"""
     period = build_period(conn, tz=tz, year=year, today=today)
+    gated = scoring.gated_components(has_previous=HAS_PREVIOUS)
     candidates: list[Insight] = []
     for source, count in list_sources(conn):
         if count == 0:
             continue
         events, active_days = common.period_stats(conn, source, period)
         level = scoring.sufficiency(events, active_days)
-        gated = scoring.gated_components(events, active_days)
         for insight in generic.detect(conn, source=source, period=period):
             if level == "insufficient" and insight.kind != "vol.total":
                 continue
             parts = scoring.score_parts(
-                kind=insight.kind,
+                signal=insight.signal,
                 novelty=insight.novelty,
-                top1_share=_concentration_share(insight),
                 sensitivity=insight.sensitivity,
                 gated=gated,
             )

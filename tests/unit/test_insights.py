@@ -58,21 +58,26 @@ def test_thin_data_yields_only_volume(conn) -> None:
 
     assert kinds_of(found) == {"vol.total"}
     assert found[0].data_sufficiency == "insufficient"
-    assert found[0].gated == ["concentration", "discontinuity"]
+    assert found[0].gated == ["deviation", "discontinuity"]
     assert any("数据量不足" in caveat for caveat in found[0].caveats)
 
 
-def test_thin_level_keeps_detectors_but_gates_discontinuity(conn) -> None:
-    """20 个活跃日、40 条事件: 充足度 thin, 体量类保留, 但 discontinuity 被关掉。"""
+def test_thin_level_keeps_detectors_but_gates_comparison(conn) -> None:
+    """20 个活跃日、40 条事件: 充足度 thin, 体量类保留, 同比类分量仍然关闭。
+
+    二期之后闸门不再按数据量关 concentration (该分量已删除), 只剩"没有上一期"
+    这一条理由, 所以 thin 与 ok 的 gated 完全相同 —— 区别只在 data_sufficiency 与 caveats。
+    """
     seed(conn, range(20))
 
     found = engine.run(conn, tz=TZ, year=YEAR)
 
     assert kinds_of(found) == {"vol.total", "vol.busiest_day"}
     assert {item.data_sufficiency for item in found} == {"thin"}
-    assert {tuple(item.gated) for item in found} == {("discontinuity",)}
+    assert {tuple(item.gated) for item in found} == {("deviation", "discontinuity")}
     for item in found:
         assert item.score_parts["discontinuity"] == 0.0
+        assert item.score_parts["deviation"] == 0.0
 
 
 def test_forty_active_days_yield_all_seven_kinds(conn) -> None:
@@ -101,26 +106,24 @@ def test_future_year_is_rejected(conn) -> None:
 
 
 def test_score_parts_sum_to_score(conn) -> None:
-    """score 必须等于六个已加权分量之和, 且老套惩罚落在 vol.total 上。"""
+    """score 必须等于四个已加权分量之和, 且 vol.total 只拿 signal 锚点。"""
     seed(conn, list(range(20)) + list(range(30, 50)))
 
     for insight in engine.run(conn, tz=TZ, year=YEAR):
         assert sum(insight.score_parts.values()) == pytest.approx(insight.score)
         assert set(insight.score_parts) == {
+            "signal",
             "deviation",
-            "rarity",
             "discontinuity",
-            "concentration",
-            "obviousness",
             "sensitivity",
         }
 
     parts = scoring.score_parts(
-        kind="vol.total", novelty="constant", top1_share=0.0, sensitivity="low"
+        signal=scoring.SIGNAL_VOL_TOTAL, novelty="constant", sensitivity="low"
     )
-    assert parts["obviousness"] == -0.45
+    assert parts["signal"] == 0.05
     assert parts["discontinuity"] == 0.0
-    assert scoring.total(parts) == -0.45
+    assert scoring.total(parts) == 0.05
 
 
 def test_absence_scores_higher_than_constant(conn) -> None:

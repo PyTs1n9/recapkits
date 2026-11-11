@@ -153,11 +153,45 @@ def test_all_seven_kinds_appear(corpus: sqlite3.Connection) -> None:
     assert {insight.kind for insight in found} == FULL_KINDS
 
 
-def test_sufficiency_is_ok_and_nothing_gated(corpus: sqlite3.Connection) -> None:
-    """46 个活跃日 / 220 条事件: 充足度 ok, 没有分量被闸门关闭。"""
+def test_sufficiency_is_ok_and_only_comparison_is_gated(corpus: sqlite3.Connection) -> None:
+    """46 个活跃日 / 220 条事件: 充足度 ok; 闸门只剩"没有上一期"这一条理由。"""
     for insight in engine.run(corpus, tz=TZ, year=YEAR):
         assert insight.data_sufficiency == "ok"
-        assert insight.gated == []
+        assert insight.gated == ["deviation", "discontinuity"]
+        assert insight.score_parts["deviation"] == 0.0
+        assert insight.score_parts["discontinuity"] == 0.0
+
+
+def test_concentration_and_hour_rhythm_lead_the_ranking(corpus: sqlite3.Connection) -> None:
+    """打分二期的验收: 62% 的集中度与 38% 的深夜占比必须占据前两名, 且都 >= 0.65。
+
+    一期时这两条分别是 -0.05 与 0.00 —— 全组最有意思的两个事实被公式压在队尾。
+    """
+    picked = engine.select(engine.run(corpus, tz=TZ, year=YEAR), top=10)
+
+    assert [item.kind for item in picked[:2]] == ["conc.top_entity", "time.hour_rhythm"]
+    assert all(item.score >= 0.65 for item in picked[:2])
+
+
+def test_weaker_concentration_falls_behind(corpus: sqlite3.Connection) -> None:
+    """把 top1_share 从 0.62 改到 0.25, 集中度必须明显掉队 (signal 真的在驱动排序)。
+
+    做法: 造一份 alpha 只占 25% 的等价语料, 再比较两者的排名位置。
+    """
+    strong = {item.kind: item for item in engine.run(corpus, tz=TZ, year=YEAR)}
+    strong_rank = [
+        item.kind for item in engine.select(engine.run(corpus, tz=TZ, year=YEAR), top=10)
+    ].index("conc.top_entity")
+
+    # 把 alpha 的 137 条摊到 5 个仓库名下, 首位占比从 62% 降到约 22%
+    corpus.execute("UPDATE events SET subtitle = 'repo' || (id % 5) WHERE subtitle = 'alpha'")
+    weak = {item.kind: item for item in engine.run(corpus, tz=TZ, year=YEAR)}
+    weak_rank = [
+        item.kind for item in engine.select(engine.run(corpus, tz=TZ, year=YEAR), top=10)
+    ].index("conc.top_entity")
+
+    assert weak["conc.top_entity"].signal < strong["conc.top_entity"].signal / 2
+    assert weak_rank > strong_rank
 
 
 def test_streak_and_gap_values(corpus: sqlite3.Connection) -> None:

@@ -4,6 +4,7 @@
 - 变更策略：**不新增表、字段、JSON key**。任何扩展先讨论，不得由实现侧自行决定。
 - 变更记录：
   - 2026-11-11 阶段 4a：`insights.json` 每条洞察新增 `data_sufficiency` 与 `gated` 两个键，用于标注「数据量闸门」；`score_parts` 保留被置零的分量，其余字段未动。原因：薄数据下 `concentration` 与 `discontinuity` 会奖励「数据少」，需要可解释地关闭。
+  - 2026-11-11 阶段 5a：`score_parts` 的键集合由 `{deviation, rarity, discontinuity, concentration, obviousness, sensitivity}` 改为 `{signal, deviation, discontinuity, sensitivity}`，仍存**已加权**值，`score == sum(score_parts)` 不变；`gated` 取值域收窄为 `deviation` / `discontinuity`（原因统一为「没有上一期」）。原因：一期公式按「六个通用分量」设计，但每个检测器能被激活的分量不同，`time.*` 恒为 0、`disc.*` 恒为 0.5、`conc.*` 被自身惩罚项封顶为负；`rarity`（静态先验表尚不存在）、`concentration`（被 signal 取代）、`obviousness`（属选卡冗余治理，不是分数问题）三项删除。`novelty` 字段保留但不再进入打分。
 
 本文件是四个契约的唯一事实源。以下内容在 `PROMPT-起步.md` §5 中定义为「照抄，不是参考」，因此**逐字抄录，不做改写、不在示例上增删字段**（上述变更记录授权的两个键除外）。
 
@@ -93,7 +94,7 @@ CREATE TABLE IF NOT EXISTS build (
       "evidence_sql": "SELECT ...",
       "evidence_rows": 18344,
       "score": 1.42,
-      "score_parts": { "deviation": 0.0, "rarity": 0.0, "discontinuity": 0.5, "concentration": 0.4, "obviousness": -0.45, "sensitivity": 0.0 },
+      "score_parts": { "signal": 0.7, "deviation": 0.0, "discontinuity": 0.0, "sensitivity": 0.0 },
       "novelty": "record",
       "sensitivity": "low",
       "data_sufficiency": "ok",
@@ -106,13 +107,14 @@ CREATE TABLE IF NOT EXISTS build (
 
 `display` 是**唯一允许被文案引用的形态**。`evidence_sql` 必须能直接执行并被测试验证。
 
-**`data_sufficiency` 与 `gated`（阶段 4a 新增）**
+**`data_sufficiency` 与 `gated`（阶段 4a 新增，阶段 5a 收窄）**
 
 - `data_sufficiency` 取值 `insufficient` / `thin` / `ok`，由活跃天数与事件数决定：
   `活跃日 < 3 或 事件 < 20` 为 `insufficient`，`活跃日 < 30` 为 `thin`，其余为 `ok`。
 - `insufficient` 时只保留 `vol.total` 一条洞察，其余丢弃，并在 `caveats` 追加数据量说明。
-- `gated` 列出被数据量闸门关闭的分量（`concentration` / `discontinuity`），顺序固定。
-  被关闭的分量**仍然保留在 `score_parts` 里，值为 `0.0`**，`score` 依旧是六个分量之和。
+- `gated` 列出被闸门关闭的分量，顺序固定。阶段 5a 起**只可能含 `deviation` 与 `discontinuity`**，
+  理由统一为「没有上一期数据」；4a 时期按数据量关闭 `concentration` 的语义随该分量一起删除。
+  被关闭的分量**仍然保留在 `score_parts` 里，值为 `0.0`**，`score` 依旧是四个分量之和。
 
 ---
 

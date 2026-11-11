@@ -1,8 +1,8 @@
 """薄数据闸门: 4 条事件、1 个活跃日, 只能出一条 vol.total。
 
-这个用例锁死 4a 的修复。没有闸门时, "单日 4 条、占比 100%" 会以 +0.900 排第一:
-concentration 恒为 0.40, discontinuity 靠 "只有一天" 必中 record 再拿 0.50 ——
-两个分量都在奖励"数据少"。
+这个用例锁死 4a 的修复。没有闸门时, "单日 4 条、占比 100%" 会以高居榜首的分量
+排到第一 —— 分量在奖励"数据少"。二期删掉了会奖励稀疏数据的 concentration 与
+obviousness, 但"该不该出卡"的判定必须原样保留: 只有 vol.total 一条。
 """
 
 import sqlite3
@@ -39,16 +39,16 @@ def seed(conn: sqlite3.Connection) -> None:
 
 
 def test_thin_corpus_keeps_only_volume(conn: sqlite3.Connection) -> None:
-    """数据不足时只留一条体量洞察, 且两个分量都被明确关闭。"""
+    """数据不足时只留一条体量洞察, 且同比类分量被明确关闭。"""
     seed(conn)
 
     found = engine.run(conn, tz=TZ, year=YEAR)
 
     assert [insight.kind for insight in found] == ["vol.total"]
     assert found[0].data_sufficiency == "insufficient"
-    assert found[0].gated == ["concentration", "discontinuity"]
-    assert found[0].score == -0.45
-    assert found[0].score_parts["concentration"] == 0.0
+    assert found[0].gated == ["deviation", "discontinuity"]
+    assert found[0].score == 0.05
+    assert found[0].score_parts["deviation"] == 0.0
     assert found[0].score_parts["discontinuity"] == 0.0
     assert any("数据量不足" in caveat for caveat in found[0].caveats)
 
@@ -61,5 +61,5 @@ def test_thin_payload_exposes_gates(conn: sqlite3.Connection) -> None:
     insight = payload["insights"][0]
 
     assert insight["data_sufficiency"] == "insufficient"
-    assert insight["gated"] == ["concentration", "discontinuity"]
-    assert insight["score"] == -0.45
+    assert insight["gated"] == ["deviation", "discontinuity"]
+    assert insight["score"] == 0.05

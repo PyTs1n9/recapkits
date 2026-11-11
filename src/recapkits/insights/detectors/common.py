@@ -54,9 +54,10 @@ def make_insight(
     sql: str,
     rows: int,
     novelty: str,
+    signal: float,
     caveats: list[str],
 ) -> Insight:
-    """组装一条未打分的洞察; 分数由 scoring 统一填充。"""
+    """组装一条未打分的洞察; `signal` 必填, 分数由 scoring 统一填充。"""
     return Insight(
         id=ident,
         kind=kind,
@@ -66,6 +67,7 @@ def make_insight(
         facts=facts,
         evidence_sql=sql,
         evidence_rows=rows,
+        signal=signal,
         score=0.0,
         score_parts={},
         novelty=novelty,

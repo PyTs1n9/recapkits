@@ -32,7 +32,11 @@ class Period:
 
 @dataclass(frozen=True)
 class Insight:
-    """一条候选洞察; 分数与分项由 scoring 填充, 检测器只负责事实。"""
+    """一条候选洞察; 分数与分项由 scoring 填充, 检测器只负责事实与自报强度。
+
+    `signal` 是检测器自报的 0..1 强度, 与 `score_parts["signal"]` 数值相同
+    (权重为 1.00), 但语义不同: 前者是未加权的原始强度, 后者是已加权分量。
+    """
 
     id: str
     kind: str
@@ -42,6 +46,7 @@ class Insight:
     facts: list[Fact]
     evidence_sql: str
     evidence_rows: int
+    signal: float
     score: float
     score_parts: dict[str, float]
     novelty: str
