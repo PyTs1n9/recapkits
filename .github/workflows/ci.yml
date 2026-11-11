@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+
+      - run: uv sync
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pyright
+      - run: uv run pytest -q
+
+      # 硬规则 1、4 的可执行证据：核心不得出现网络地址与本地时间旁路
+      - name: forbid-network-and-inline-local-time
+        shell: bash
+        run: |
+          set -e
+          ! git grep -n -E "https?://" -- src
+          ! git grep -n -E "datetime\.now|astimezone|strftime\('%H'\)|urllib\.request|CURRENT_TIMESTAMP" -- src

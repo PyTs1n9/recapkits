@@ -1,0 +1,37 @@
+[project]
+name = "recapkits"
+version = "0.0.1"
+description = "Local-first, plugin-based year-in-review engine for any data export"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+recap = "recapkits.cli:main"
+
+[dependency-groups]
+dev = ["ruff", "pyright", "pytest", "hypothesis"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/recapkits"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.format]
+# 设计文档与规格里的 Python 代码块是冻结的引用文本，不参与格式化
+exclude = ["*.md"]
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
