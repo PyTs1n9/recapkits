@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "allow_sensitive": true,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:fixture1"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "ranking",
+      "insight": "conc.top_entity:repo:health:2024",
+      "copy": { "headline": "{{conc.top_entity:repo:health:2024.share}} 集中在 health" },
+      "evidence": ["conc.top_entity:repo:health:2024"]
+    }
+  ]
+}

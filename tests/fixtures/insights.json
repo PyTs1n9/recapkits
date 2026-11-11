@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "build_id": "b3:fixture1",
+  "generated_from": { "sources": ["git"], "event_count": 220, "tz": "Asia/Shanghai" },
+  "insights": [
+    {
+      "id": "vol.total:git:2024",
+      "kind": "vol.total",
+      "source": "git",
+      "period": {
+        "start": "2024-01-01",
+        "end": "2024-12-31",
+        "tz": "Asia/Shanghai",
+        "coverage": 0.1257
+      },
+      "headline_fact": {
+        "key": "events",
+        "label": "事件总数",
+        "value": 220,
+        "unit": "count",
+        "display": "220"
+      },
+      "facts": [
+        { "key": "active_days", "label": "活跃天数", "value": 46, "unit": "count", "display": "46" },
+        { "key": "daily_avg", "label": "日均事件", "value": 4.78, "unit": "count", "display": "4.8" }
+      ],
+      "evidence_sql": "SELECT 1",
+      "evidence_rows": 1,
+      "score": -0.45,
+      "score_parts": {
+        "deviation": 0.0,
+        "rarity": 0.0,
+        "discontinuity": 0.0,
+        "concentration": 0.0,
+        "obviousness": -0.45,
+        "sensitivity": 0.0
+      },
+      "novelty": "constant",
+      "sensitivity": "low",
+      "data_sufficiency": "ok",
+      "gated": [],
+      "caveats": []
+    },
+    {
+      "id": "conc.top_entity:repo:alpha:2024",
+      "kind": "conc.top_entity",
+      "source": "git",
+      "period": {
+        "start": "2024-01-01",
+        "end": "2024-12-31",
+        "tz": "Asia/Shanghai",
+        "coverage": 0.1257
+      },
+      "headline_fact": {
+        "key": "share",
+        "label": "占全部事件的比重",
+        "value": 0.6227,
+        "unit": "pct",
+        "display": "62%"
+      },
+      "facts": [
+        { "key": "rank_1", "label": "alpha", "value": 137, "unit": "count", "display": "137" }
+      ],
+      "evidence_sql": "SELECT 1",
+      "evidence_rows": 1,
+      "score": -0.05,
+      "score_parts": {
+        "deviation": 0.0,
+        "rarity": 0.0,
+        "discontinuity": 0.0,
+        "concentration": 0.4,
+        "obviousness": -0.45,
+        "sensitivity": 0.0
+      },
+      "novelty": "constant",
+      "sensitivity": "low",
+      "data_sufficiency": "ok",
+      "gated": [],
+      "caveats": []
+    },
+    {
+      "id": "conc.top_entity:repo:health:2024",
+      "kind": "conc.top_entity",
+      "source": "git",
+      "period": {
+        "start": "2024-01-01",
+        "end": "2024-12-31",
+        "tz": "Asia/Shanghai",
+        "coverage": 0.1257
+      },
+      "headline_fact": {
+        "key": "share",
+        "label": "占全部事件的比重",
+        "value": 0.48,
+        "unit": "pct",
+        "display": "48%"
+      },
+      "facts": [
+        { "key": "rank_1", "label": "health", "value": 106, "unit": "count", "display": "106" }
+      ],
+      "evidence_sql": "SELECT 1",
+      "evidence_rows": 1,
+      "score": 0.4,
+      "score_parts": {
+        "deviation": 0.0,
+        "rarity": 0.0,
+        "discontinuity": 0.0,
+        "concentration": 0.4,
+        "obviousness": -0.45,
+        "sensitivity": 0.0
+      },
+      "novelty": "constant",
+      "sensitivity": "high",
+      "data_sufficiency": "ok",
+      "gated": [],
+      "caveats": []
+    }
+  ]
+}

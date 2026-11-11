@@ -8,12 +8,13 @@ import sys
 from collections.abc import Sequence
 
 from recapkits.commands import (
-    RecapError,
     cmd_doctor,
     cmd_import,
     cmd_init,
     cmd_insights,
 )
+from recapkits.errors import RecapError
+from recapkits.story.cli import cmd_story
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -42,6 +43,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = sub.add_parser("doctor", help="诊断环境与工作区")
     doctor.set_defaults(handler=cmd_doctor)
+
+    story = sub.add_parser("story", help="校验 story.json")
+    story.add_argument("--check", required=True, metavar="PATH", help="要校验的 story.json")
+    story.add_argument("--insights", metavar="PATH", help="insights.json 路径")
+    story.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
+    story.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")
+    story.set_defaults(handler=cmd_story)
     return parser
 
 

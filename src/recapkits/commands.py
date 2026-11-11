@@ -25,14 +25,11 @@ from recapkits.db import (
     list_sources,
 )
 from recapkits.emit import render, write
+from recapkits.errors import RecapError
 from recapkits.insights import engine
 from recapkits.insights.model import Insight
 from recapkits.tz import rebuild_local, utc_now_iso
 from recapkits.workspace import WORKSPACE, Workspace, ensure_gitignore, load_workspace
-
-
-class RecapError(Exception):
-    """可以直接展示给用户的一句话错误。"""
 
 
 def _require_workspace() -> Workspace:
@@ -80,14 +77,22 @@ def _print_report(report: IngestReport, added: int, start: str, end: str) -> Non
         print(f"警告      另有 {len(report.warnings) - 5} 条省略")
 
 
-def _print_insights(insights: Sequence[Insight], *, explain: bool) -> None:
-    """人类可读输出: 一行一个分数加一句事实。"""
+def _print_insights(
+    insights: Sequence[Insight], stats: dict[str, tuple[int, int]], *, explain: bool
+) -> None:
+    """人类可读输出: 一行一个分数加一句事实; --explain 再补分项与充足度。"""
     for rank, insight in enumerate(insights, start=1):
         head = insight.headline_fact
         print(f"{rank:>2}. {insight.score:+.3f}  {insight.kind:<22} {head.label} {head.display}")
-        if explain:
-            parts = "  ".join(f"{name} {value:+.2f}" for name, value in insight.score_parts.items())
-            print(f"    {parts}")
+        if not explain:
+            continue
+        parts = "  ".join(
+            f"{name} {value:+.2f}" + ("(闸门)" if name in insight.gated else "")
+            for name, value in insight.score_parts.items()
+        )
+        print(f"    {parts}")
+        events, active_days = stats.get(insight.source, (0, 0))
+        print(f"    数据充足度: {insight.data_sufficiency} ({events} 事件 / {active_days} 活跃日)")
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -165,9 +170,11 @@ def cmd_insights(args: argparse.Namespace) -> int:
     try:
         init_schema(conn)
         try:
+            period = engine.build_period(conn, tz=workspace.tz, year=workspace.year)
             candidates = engine.run(conn, tz=workspace.tz, year=workspace.year)
         except ValueError as exc:
             raise RecapError(str(exc)) from exc
+        stats = engine.source_stats(conn, period)
         selected = engine.select(candidates, top=args.top)
         payload = render(
             selected,
@@ -180,7 +187,7 @@ def cmd_insights(args: argparse.Namespace) -> int:
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return 0
-        _print_insights(selected, explain=args.explain)
+        _print_insights(selected, stats, explain=args.explain)
         print(f"\n候选 {len(candidates)} 条, 选出 {len(selected)} 条, 已写入 {out_path}")
         if not selected:
             print("没有达到样本门槛的洞察: 换更长窗口, 或再导入一个源", file=sys.stderr)
