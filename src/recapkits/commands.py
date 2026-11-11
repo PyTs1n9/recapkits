@@ -207,6 +207,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     else:
         print("git        未找到; import --source git 不可用")
 
+    node = shutil.which("node")
+    if node:
+        completed = subprocess.run([node, "--version"], capture_output=True, text=True, check=False)
+        print(f"node       {completed.stdout.strip() or node}")
+    else:
+        print("node       未找到; render 不可用 (HTML 由 renderer 构建产物产出)")
+
     try:
         ZoneInfo("Asia/Shanghai")
         print("时区数据   可用")

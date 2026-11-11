@@ -1,0 +1,38 @@
+/* 设计 token。
+ *
+ * 布局一律用绝对像素: 舞台固定 1080x1920 (或 1080x1350), 缩放只发生在 .stage 的
+ * transform 上。这样 PNG/MP4 阶段的截图与浏览器里看到的是同一套几何, 不需要为
+ * 两个目标各调一遍。
+ *
+ * 字体确定性推迟到 PNG/MP4 阶段 (阶段 6/7)。HTML 阶段用系统字体栈, 因为:
+ * 1) 在浏览器里 CJK 字体本来就由系统提供, 随包字体只会让文件变大;
+ * 2) CJK 子集化是件正经工作 (需要按实际文案裁剪字形), 在还没有像素输出的阶段
+ *    为它付费没有回报。
+ * 阶段 6 引入随包 WOFF2 时, 只替换下面的 --font-sans 与其 @font-face, 布局不用动。
+ * 看到这里没有 @font-face 是**故意的**, 不是漏了。
+ */
+
+:root {
+  --col: 56px; --gutter: 24px; --margin: 72px;
+  --safe-top: 240px; --safe-bottom: 240px;
+  --fs-display: 320px; --fs-h1: 220px; --fs-h2: 140px;
+  --fs-lead: 88px; --fs-body: 56px; --fs-caption: 40px; --fs-micro: 28px;
+  --track-tight: -0.025em;
+  --dur-fast: 160ms; --dur-mid: 400ms; --dur-slow: 700ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.1, 1);
+
+  --font-sans: "Inter Tight", -apple-system, "Segoe UI", "PingFang SC",
+    "Microsoft YaHei", "Noto Sans SC", sans-serif;
+}
+
+/* 主题 neon: 暗底、饱和渐变、白色文字、单一强调色。文字不加投影。 */
+:root {
+  --skin-bg: #0b0b0f;
+  --skin-bg-image: radial-gradient(118% 78% at 82% -8%, rgba(198, 255, 61, 0.22), transparent 58%),
+    linear-gradient(158deg, #17171f 0%, #0b0b0f 52%, #06060a 100%);
+  --skin-ink: #ffffff;
+  --skin-muted: rgba(255, 255, 255, 0.6);
+  --skin-faint: rgba(255, 255, 255, 0.38);
+  --skin-accent: #c6ff3d;
+  --skin-rule: rgba(255, 255, 255, 0.14);
+}

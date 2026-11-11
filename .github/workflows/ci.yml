@@ -31,5 +31,29 @@ jobs:
         shell: bash
         run: |
           set -e
-          ! git grep -n -E "https?://" -- src
-          ! git grep -n -E "datetime\.now|astimezone|strftime\('%H'\)|urllib\.request|CURRENT_TIMESTAMP" -- src
+          ! grep -rn -E "https?://" src
+          ! grep -rn -E "datetime\.now|astimezone|strftime\('%H'\)|urllib\.request|CURRENT_TIMESTAMP" src
+
+  # 防止"改了前端忘了重建": assets/ 是入库的, dist/ 是构建产物, 两者必须一致。
+  # 失效的后果很隐蔽 —— 用户拿到的 wheel 里是旧界面, 且不会有任何报错。
+  renderer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: renderer/pnpm-lock.yaml
+
+      - run: pnpm --dir renderer install --frozen-lockfile
+      - run: pnpm --dir renderer run typecheck
+      - run: pnpm --dir renderer run build
+
+      - name: renderer-assets-in-sync
+        run: python3 scripts/sync-renderer.py --check

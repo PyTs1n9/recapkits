@@ -1,0 +1,19 @@
+{
+  "name": "recapkits-renderer",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "recapkits 的静态 HTML 渲染器: 构建期把已烘焙的故事渲染成字符串",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "preact": "^10.25.4",
+    "preact-render-to-string": "^6.5.13",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

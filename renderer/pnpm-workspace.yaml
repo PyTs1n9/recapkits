@@ -1,0 +1,3 @@
+# pnpm 11 要求显式放行依赖的构建脚本; esbuild 的 postinstall 只做二进制自检。
+allowBuilds:
+  esbuild: true

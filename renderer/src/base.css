@@ -1,0 +1,164 @@
+/* 重置、舞台几何与卡片版式。
+ *
+ * 每张卡一屏: 竖向滚动 + scroll-snap。舞台尺寸由内联变量给出
+ * (--stage-w / --stage-h, 单位 px), 缩放由 main.ts 的 10 行脚本按视口算,
+ * 计算公式是 min(视口宽 / 舞台宽, 视口高 / 舞台高), 保证任何比例下都不裁切。
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #05050a;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.deck {
+  /* 100dvh 优先: 手机浏览器地址栏收起时 100vh 会多出一截, 导致一屏放不下一张卡。 */
+  height: 100vh;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior-y: contain;
+}
+
+.slide {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* 舞台用绝对定位 + 位移居中, 而不是 flex/grid 居中: 1080px 的子元素会把
+ * auto 轨道撑到 1080, 于是"居中"其实是在一条 1080 宽的轨道里居中, 结果贴左溢出。
+ * 绝对定位让子元素不参与父级尺寸计算, 任何视口下都真的居中。 */
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  flex: none;
+  width: calc(var(--stage-w) * 1px);
+  height: calc(var(--stage-h) * 1px);
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 0.3));
+  transform-origin: center center;
+  overflow: hidden;
+  isolation: isolate;
+  background-color: var(--skin-bg);
+  background-image: var(--skin-bg-image);
+  color: var(--skin-ink);
+  font-family: var(--font-sans);
+  font-kerning: normal;
+}
+
+/* 卡片: 所有卡片共享安全区与左右外边距, 只换内部排布。 */
+.card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--safe-top) var(--margin) var(--safe-bottom);
+}
+
+.measure {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-tight);
+}
+
+/* 中文按字符断行, 不按空格断行; line-break: strict 让标点不落在行首。 */
+.copy {
+  margin: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-break: strict;
+  text-wrap: pretty;
+}
+
+/* ---------- cover ---------- */
+
+.cover__kicker {
+  margin: 0;
+  font-size: var(--fs-caption);
+  line-height: 1.2;
+  letter-spacing: 0.16em;
+  color: var(--skin-accent);
+}
+
+.cover__year {
+  margin: 0;
+  margin-top: 104px;
+  font-size: var(--fs-display);
+  line-height: 0.84;
+  font-weight: 700;
+  color: var(--skin-ink);
+}
+
+.cover__sub {
+  margin: 56px 0 0;
+  font-size: var(--fs-lead);
+  line-height: 1.24;
+  color: var(--skin-muted);
+}
+
+.cover__rule {
+  margin: auto 0 0;
+  height: 2px;
+  width: 168px;
+  background: var(--skin-accent);
+}
+
+/* ---------- big-number ---------- */
+
+.big-number {
+  justify-content: flex-end;
+}
+
+.big-number__kicker {
+  position: absolute;
+  top: var(--safe-top);
+  left: var(--margin);
+  margin: 0;
+  font-size: var(--fs-micro);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  color: var(--skin-faint);
+}
+
+.big-number__sub {
+  margin: 0 0 24px;
+  font-size: var(--fs-body);
+  line-height: 1.36;
+  color: var(--skin-muted);
+}
+
+.big-number__headline {
+  margin: 0 0 8px;
+  font-size: var(--fs-h2);
+  line-height: 1.04;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.big-number__value {
+  /* line-height 0.9 + 0.12em 下移补偿: 行盒底落在安全区下沿时, CJK 字形仍会
+   * 向下溢出约 39px (实测 1080x1920)。这里把行盒上提 0.12em, 让字形的视觉底边
+   * 正好压在安全区下沿。字体确定性推迟到阶段 6, 届时随包字体落地后重测这一个值。 */
+  margin: 0 0 0.12em;
+  font-size: var(--fs-display);
+  line-height: 0.9;
+  font-weight: 700;
+  color: var(--skin-ink);
+}

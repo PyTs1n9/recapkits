@@ -41,13 +41,29 @@ class StoryError:
 
 @dataclass(frozen=True)
 class InsightRef:
-    """校验只需要洞察的这几样: 身份、类型、敏感度、事实与标签。"""
+    """校验只需要洞察的这几样: 身份、类型、敏感度、事实与标签。
+
+    `headline` 是被引洞察 `headline_fact.display` 的原文, 渲染 `big-number` 时
+    作为巨型数字使用 —— 它已经过校验, 可以直接进产物。
+    """
 
     id: str
     kind: str
     sensitivity: str
     facts: dict[str, str]
     labels: list[str]
+    headline: str = ""
+
+
+def format_errors(errors: list[StoryError]) -> str:
+    """把错误列表排成逐行可读的文本; CLI 与 render 共用, 免得两处各写一遍格式。"""
+    lines = [f"有 {len(errors)} 处问题:"]
+    for position, error in enumerate(errors, start=1):
+        slot = f" {error.slot}" if error.slot else ""
+        lines.append(f"  {position}. [{error.code}] 卡#{error.card_index + 1}{slot}")
+        lines.append(f"     得到 {error.got!r}; 期望 {error.expected}")
+        lines.append(f"     提示: {error.hint}")
+    return "\n".join(lines)
 
 
 def _field(mapping: dict[str, Any], key: str, where: str) -> Any:

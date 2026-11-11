@@ -29,6 +29,10 @@ class Workspace:
     def out_path(self) -> Path:
         return self.root / "out" / "insights.json"
 
+    @property
+    def story_path(self) -> Path:
+        return self.root / "story.json"
+
 
 def load_workspace(root: Path | None = None) -> Workspace | None:
     """读工作区配置; 未初始化时返回 None。"""

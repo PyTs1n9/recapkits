@@ -10,7 +10,9 @@ from recapkits.story.measure import SLOT_BUDGET_PX, Measure, default_measure
 from recapkits.story.rules import PLACEHOLDER, check_causality, check_names, check_numbers
 from recapkits.story.schema import Card, InsightRef, Story, StoryError
 
-STRICT_PLACEHOLDER = re.compile(r"^[a-z0-9_.:]+$")
+#: 占位符里允许的字符。必须包含 `-`, 因为 disc.* 的 id 带日期
+#: (例如 disc.longest_gap:git:2024:2024-03-10); 少了它, 这类洞察永远无法被引用。
+STRICT_PLACEHOLDER = re.compile(r"^[a-z0-9_.:-]+$")
 
 #: 类型兼容: (kind 前缀, 精确 kind)。cover 与 summary-grid 不限。
 COMPATIBILITY: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
@@ -32,12 +34,14 @@ def build_refs(payload: dict[str, Any]) -> dict[str, InsightRef]:
             if isinstance(fact, dict) and "key" in fact
         }
         labels = [str(fact.get("label", "")) for fact in facts_raw if isinstance(fact, dict)]
+        headline = item.get("headline_fact", {})
         refs[str(item["id"])] = InsightRef(
             id=str(item["id"]),
             kind=str(item.get("kind", "")),
             sensitivity=str(item.get("sensitivity", "low")),
             facts=facts,
             labels=labels,
+            headline=str(headline.get("display", "")) if isinstance(headline, dict) else "",
         )
     return refs
 

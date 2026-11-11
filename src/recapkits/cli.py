@@ -14,6 +14,7 @@ from recapkits.commands import (
     cmd_insights,
 )
 from recapkits.errors import RecapError
+from recapkits.render.cli import cmd_preview, cmd_render
 from recapkits.story.cli import cmd_story
 
 
@@ -50,6 +51,35 @@ def build_parser() -> argparse.ArgumentParser:
     story.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
     story.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")
     story.set_defaults(handler=cmd_story)
+
+    render = sub.add_parser("render", help="渲染单文件 HTML")
+    render.add_argument(
+        "--format", default="html", choices=["html"], help="输出格式, 目前只有 html"
+    )
+    render.add_argument("--aspect", default="9:16", choices=["9:16", "4:5"], help="画布比例")
+    render.add_argument(
+        "--story", metavar="PATH", help="story.json 路径, 默认 .recapkits/story.json"
+    )
+    render.add_argument("--insights", metavar="PATH", help="insights.json 路径")
+    render.add_argument(
+        "--out", metavar="PATH", help="输出路径, 默认 .recapkits/out/recap-<年份>.html"
+    )
+    render.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
+    render.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")
+    render.set_defaults(handler=cmd_render)
+
+    preview = sub.add_parser("preview", help="本地预览, 改 story.json 自动刷新")
+    preview.add_argument("--aspect", default="9:16", choices=["9:16", "4:5"], help="画布比例")
+    preview.add_argument(
+        "--story", metavar="PATH", help="story.json 路径, 默认 .recapkits/story.json"
+    )
+    preview.add_argument("--insights", metavar="PATH", help="insights.json 路径")
+    preview.add_argument("--port", type=int, default=0, help="端口, 默认由系统分配")
+    preview.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
+    preview.add_argument(
+        "--allow-unknown-names", action="store_true", help="放行实体表外的专有名词"
+    )
+    preview.set_defaults(handler=cmd_preview)
     return parser
 
 

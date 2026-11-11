@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:fixture1"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "cover",
+      "copy": {
+        "headline": "2024",
+        "kicker": "本地生成 · 未上传",
+        "sub": "一整年的提交记录"
+      }
+    },
+    {
+      "id": "c2",
+      "type": "big-number",
+      "insight": "vol.total:git:2024",
+      "copy": {
+        "kicker": "全年",
+        "headline": "提交总数",
+        "sub": "覆盖 {{vol.total:git:2024.active_days}} 个活跃日"
+      },
+      "evidence": ["vol.total:git:2024"]
+    },
+    {
+      "id": "c3",
+      "type": "big-number",
+      "copy": {
+        "kicker": "年度执念",
+        "headline": "提交集中度",
+        "sub": "都指向同一仓库 alpha"
+      },
+      "evidence": ["conc.top_entity:repo:alpha:2024"]
+    }
+  ]
+}
