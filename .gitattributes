@@ -9,3 +9,5 @@ src/recapkits/render/assets/** text eol=lf
 # --check 在所有 Windows 机器上失败; 这两个目录必须保持 LF。
 tests/fixtures/spotify/** text eol=lf
 tests/fixtures/netflix/** text eol=lf
+# 对抗性故事是静态数据, 行尾不参与断言; 与其余 fixture 保持一致。
+tests/fixtures/adversarial/** text eol=lf

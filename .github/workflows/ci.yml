@@ -131,6 +131,44 @@ jobs:
             exit 1
           fi
 
+  # 出网证据: 在只有 loopback 的 netns 里跑完整链路, HTML 必须与联网时逐字节相同。
+  # 这条测试在 Windows / macOS 上 skip; 这里用 -rs 守住"不得跳过" —— 证据不能靠
+  # 跳过变绿, 否则"零外联"就只剩一句口号。
+  egress-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync
+
+      - name: unshare-must-work
+        run: |
+          set -euo pipefail
+          # Ubuntu 23.10+ 默认用 AppArmor 限制非特权 user namespace; `unshare -r`
+          # 会因此报 Operation not permitted。runner 有免密 sudo, 这里放开。
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          which unshare
+          unshare -rn true
+
+      - name: egress-must-not-skip
+        run: |
+          set -euo pipefail
+          uv run pytest -q tests/unit/test_offline_egress.py -rs | tee egress.log
+          if grep -q "skipped" egress.log; then
+            echo "出网证明被跳过: 没有 unshare / node" >&2
+            exit 1
+          fi
+
   # 防止"改了前端忘了重建": assets/ 是入库的, dist/ 是构建产物, 两者必须一致。
   # 失效的后果很隐蔽 —— 用户拿到的 wheel 里是旧界面, 且不会有任何报错。
   renderer:
