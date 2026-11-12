@@ -141,6 +141,12 @@ recap preview                                                   # 本地预览, 
 产物默认写到 `.recapkits/out/recap-<年份>.html`：单文件、CSS 内联、无外部请求。
 命令只打印绝对路径，不自动打开浏览器。
 
+`--format png` 走同一条管线，只把最后一步换成真实浏览器逐卡截图：输出到
+`.recapkits/out/cards/recap-<年份>-01.png`…，序号补零，写之前先清掉上一轮的
+`recap-*.png`。截图要等字体就绪、两帧绘制与页面上的 `data-render-ready` 标记，
+视口与舞台同尺寸、缩放固定为 1，否则像素对不上设计稿（见
+[`docs/decisions/0002-render-pipeline.md`](decisions/0002-render-pipeline.md) 的决定四）。
+
 ## 长度预算
 
 画布宽 1080，左右各留 72，因此 `headline` 与 `sub` 的可用宽度是 936px，`kicker` 是 480px。

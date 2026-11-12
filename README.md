@@ -37,13 +37,14 @@ uvx recapkits preview          # 只绑 127.0.0.1，端口随机，按 Ctrl+C �
 出图（每张卡一张 PNG，便于逐张发布）：
 
 ```bash
-uv sync --extra png
-uvx recapkits render --format png --aspect 9:16   # 也支持 4:5
+uvx --with 'recapkits[png]' recapkits render --format png --aspect 9:16   # 也支持 4:5
 ```
 
 图写到 `.recapkits/out/cards/recap-<年份>-01.png` …，序号补零，文件名的字典序就是
 卡片顺序。截图用真实浏览器渲染同一个页面：视口与舞台同宽、缩放固定为 1，并在
 字体就绪、两帧绘制之后才按快门。同目录里上一轮的 `recap-*.png` 会先被清掉。
+
+在本仓库里开发时用 `uv sync --extra png` 装可选依赖，命令换成 `./uv run recap render …`。
 
 ## 改渲染器
 
@@ -54,6 +55,9 @@ python scripts/sync-renderer.py    # 把 dist/ 同步到 src/recapkits/render/as
 ```
 
 `--check` 模式只比较两侧的文件清单与 sha256，CI 用它守住"改了前端忘了重建"。
+
+改完版式跑一次 `./uv run pytest -m design`：溢出、安全区、对比度三条断言会在真实
+浏览器里重测六张卡 × 两个比例（需要 Node、Playwright 与一个浏览器）。
 
 ## 本地工具链
 
