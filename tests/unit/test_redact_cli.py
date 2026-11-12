@@ -97,6 +97,14 @@ def test_report_writes_nothing(tmp_path: Path, monkeypatch, capsys) -> None:
     assert "alpha" not in captured.err
 
 
+def test_report_and_render_are_mutually_exclusive(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.chdir(tmp_path)
+    make_workspace(tmp_path)
+
+    assert main(["redact", "--report", "--render"]) == 1
+    assert "互斥" in capsys.readouterr().err
+
+
 def test_report_tty_prints_samples(tmp_path: Path) -> None:
     """样本只在 TTY 上出现; 用一个假的流证明这条路是通的。"""
     insights = json.loads((FIXTURES / "insights.json").read_text(encoding="utf-8"))

@@ -94,6 +94,8 @@ def _render(args: argparse.Namespace, paths: Paths, year: int) -> int:
 
 def cmd_redact(args: argparse.Namespace) -> int:
     """读两份 JSON, 脱敏, 写两份 JSON; `--report` 只审计。"""
+    if args.report and args.render:
+        raise RecapError("--report 与 --render 互斥: 审计不落盘, 没有产物可出片")
     paths = _resolve(args)
     insights = load_json(paths.insights, "insights.json")
     story = load_json(paths.story, "story.json")
