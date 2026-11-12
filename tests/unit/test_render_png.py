@@ -129,7 +129,7 @@ def test_stale_cards_are_removed(tmp_path: Path) -> None:
 
 @needs_browser
 def test_cli_writes_into_the_workspace_cards_dir(tmp_path: Path, monkeypatch) -> None:
-    """`recap render --format png` 写 .recapkits/out/cards/, 并打印张数与总字节。"""
+    """两个比例各写各的目录: 同名文件不会互相覆盖。"""
     from recapkits.cli import main
 
     workspace = tmp_path / ".recapkits"
@@ -141,8 +141,11 @@ def test_cli_writes_into_the_workspace_cards_dir(tmp_path: Path, monkeypatch) ->
     (workspace / "insights.json").write_text(INSIGHTS.read_text(encoding="utf-8"), encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
+    assert main(["render", "--format", "png", "--aspect", "9:16"]) == 0
     assert main(["render", "--format", "png", "--aspect", "4:5"]) == 0
 
-    cards = sorted((workspace / "out" / "cards").glob("*.png"))
-    assert len(cards) == 3
-    assert png.image_size(cards[0].read_bytes()) == (1080, 1350)
+    tall = sorted((workspace / "out" / "cards").glob("*.png"))
+    wide = sorted((workspace / "out" / "cards-4x5").glob("*.png"))
+    assert len(tall) == 3 and len(wide) == 3
+    assert png.image_size(tall[0].read_bytes()) == (1080, 1920)
+    assert png.image_size(wide[0].read_bytes()) == (1080, 1350)

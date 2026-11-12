@@ -35,11 +35,15 @@ def _default_out(story_path: Path, year: int) -> Path:
     return directory / f"recap-{year}.html"
 
 
-def _default_cards_dir(story_path: Path) -> Path:
-    """PNG 的默认目录: `.recapkits/out/cards/`; 没有工作区就放在故事旁边。"""
+def _default_cards_dir(story_path: Path, aspect: str) -> Path:
+    """PNG 的默认目录: 9:16 用 `out/cards/`, 4:5 用 `out/cards-4x5/`。
+
+    两个比例的图名一样 (recap-<年份>-NN.png), 同一个目录会互相覆盖; 而"两种比例都
+    要出"是常见用法, 所以默认按比例分目录, 而不是让第二次运行悄悄抹掉第一次。
+    """
     workspace: Workspace | None = load_workspace()
     root = workspace.root if workspace is not None else story_path.parent
-    return root / "out" / "cards"
+    return root / "out" / ("cards" if aspect == "9:16" else "cards-4x5")
 
 
 def cmd_render(args: argparse.Namespace) -> int:
@@ -79,7 +83,9 @@ def _render_png(args: argparse.Namespace, html: str, *, story_path: Path, year: 
     """逐卡截图; `--out` 在这条路径上指的是目录, 不是文件。"""
     if args.out and Path(args.out).suffix.lower() == ".png":
         raise RecapError("--format png 的 --out 是输出目录, 不是文件名")
-    out_dir = Path(args.out).expanduser() if args.out else _default_cards_dir(story_path)
+    out_dir = (
+        Path(args.out).expanduser() if args.out else _default_cards_dir(story_path, args.aspect)
+    )
     report = render_pngs(html, aspect=args.aspect, out_dir=out_dir, year=year)
     if report.channel is None:
         print("未找到本机 chrome / msedge, 已回落到 Playwright 自带的 chromium (约 150 MB)")

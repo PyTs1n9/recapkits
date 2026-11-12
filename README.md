@@ -40,8 +40,9 @@ uvx recapkits preview          # 只绑 127.0.0.1，端口随机，按 Ctrl+C �
 uvx --with 'recapkits[png]' recapkits render --format png --aspect 9:16   # 也支持 4:5
 ```
 
-图写到 `.recapkits/out/cards/recap-<年份>-01.png` …，序号补零，文件名的字典序就是
-卡片顺序。截图用真实浏览器渲染同一个页面：视口与舞台同宽、缩放固定为 1，并在
+图写到 `.recapkits/out/cards/`（9:16）与 `.recapkits/out/cards-4x5/`（4:5），
+文件名为 `recap-<年份>-01.png` …，序号补零，字典序就是卡片顺序。两个比例分开目录，
+跑第二个不会把第一个覆盖掉。截图用真实浏览器渲染同一个页面：视口与舞台同宽、缩放固定为 1，并在
 字体就绪、两帧绘制之后才按快门。同目录里上一轮的 `recap-*.png` 会先被清掉。
 
 在本仓库里开发时用 `uv sync --extra png` 装可选依赖，命令换成 `./uv run recap render …`。
