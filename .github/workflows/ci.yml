@@ -58,6 +58,15 @@ jobs:
         with:
           enable-cache: true
 
+      # MP4 测试需要 ffmpeg (系统依赖, 与 node 同等待遇); 没有它时测试会 skip 而仍"全绿"。
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y ffmpeg
+      - name: ffmpeg-must-exist
+        run: |
+          set -euo pipefail
+          which ffmpeg
+          ffmpeg -version | head -1
+
       # PNG 测试需要可选依赖与一个浏览器; 装了自带 chromium, 这样"本机没有
       # chrome/msedge"也不会让下面那条"不得跳过"的断言变红。
       - run: uv sync --extra png
@@ -84,6 +93,16 @@ jobs:
           uv run pytest -q tests/unit/test_render_png_deterministic.py -rs | tee png.log
           if grep -q "skipped" png.log; then
             echo "PNG 确定性测试被跳过: 浏览器缺失" >&2
+            exit 1
+          fi
+
+      # 时间轴是纯计算, 帧数与时长错了不该等到"看起来有画面"才发现。
+      - name: mp4-tests-must-not-skip
+        run: |
+          set -euo pipefail
+          uv run pytest -q tests/unit/test_mp4_timeline.py tests/unit/test_render_mp4.py -rs | tee mp4.log
+          if grep -q "skipped" mp4.log; then
+            echo "MP4 测试被跳过: ffmpeg / node / 浏览器 缺失" >&2
             exit 1
           fi
 

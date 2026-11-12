@@ -77,6 +77,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             out=None,
             format="html",
             aspect="9:16",
+            fps=30,
             allow_sensitive=False,
             allow_unknown_names=False,
         )

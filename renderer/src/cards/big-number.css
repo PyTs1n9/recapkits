@@ -52,3 +52,39 @@
   margin-bottom: calc(var(--display-baseline-shift) + 18px);
   font-size: 240px;
 }
+
+/* ---------- 入场动画 (仅 MP4) ----------
+ * 数字从 0.92 缩放到 1、透明度 0→1 (0..600ms), 细线横向展开 (0..400ms)。
+ * 原点取 left bottom: 数字的墨迹底边与左边界在动画期间不动, 只有大小在变。
+ */
+@keyframes big-number-value {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes big-number-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+html[data-motion="on"] .big-number .big-number__value {
+  transform-origin: left bottom;
+  animation: big-number-value 600ms var(--ease-out) both;
+  animation-play-state: paused;
+}
+
+html[data-motion="on"] .big-number .card__rule {
+  transform-origin: left center;
+  animation: big-number-rule 400ms var(--ease-out) both;
+  animation-play-state: paused;
+}

@@ -75,12 +75,12 @@ def build_parser() -> argparse.ArgumentParser:
     story.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")
     story.set_defaults(handler=cmd_story)
 
-    render = sub.add_parser("render", help="渲染单文件 HTML 或逐卡 PNG")
+    render = sub.add_parser("render", help="渲染单文件 HTML、逐卡 PNG 或 MP4")
     render.add_argument(
         "--format",
         default="html",
-        choices=["html", "png"],
-        help="输出格式: html 写单文件, png 逐卡一组图 (需要可选依赖 playwright)",
+        choices=["html", "png", "mp4"],
+        help="输出格式: html 单文件, png 逐卡一组图, mp4 一条视频 (后两者需要可选依赖)",
     )
     render.add_argument("--aspect", default="9:16", choices=["9:16", "4:5"], help="画布比例")
     render.add_argument(
@@ -90,8 +90,9 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument(
         "--out",
         metavar="PATH",
-        help="html 为输出文件, 默认 .recapkits/out/recap-<年份>.html; png 为输出目录",
+        help="html / mp4 为输出文件, png 为输出目录; 默认写到 .recapkits/out/",
     )
+    render.add_argument("--fps", type=int, default=30, help="mp4 的帧率, 默认 30")
     render.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
     render.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")
     render.set_defaults(handler=cmd_render)

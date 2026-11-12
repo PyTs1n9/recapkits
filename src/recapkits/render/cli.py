@@ -9,6 +9,8 @@ from pathlib import Path
 
 from recapkits.errors import RecapError
 from recapkits.render import preview
+from recapkits.render.ffmpeg import require_ffmpeg
+from recapkits.render.mp4 import render_mp4
 from recapkits.render.node import require_node
 from recapkits.render.pipeline import build_html, load_input
 from recapkits.render.png import render_pngs
@@ -46,10 +48,21 @@ def _default_cards_dir(story_path: Path, aspect: str) -> Path:
     return root / "out" / ("cards" if aspect == "9:16" else "cards-4x5")
 
 
+def _default_mp4_path(story_path: Path, year: int, aspect: str) -> Path:
+    """MP4 的默认文件: 两个比例分开命名; 同名会互相覆盖, PNG 上已经踩过一次。"""
+    workspace: Workspace | None = load_workspace()
+    root = workspace.root if workspace is not None else story_path.parent
+    name = f"recap-{year}.mp4" if aspect == "9:16" else f"recap-{year}-4x5.mp4"
+    return root / "out" / name
+
+
 def cmd_render(args: argparse.Namespace) -> int:
-    """校验、烘焙、渲染; html 写单文件, png 逐卡写一组图。"""
+    """校验、烘焙、渲染; html 写单文件, png 逐卡写一组图, mp4 写一条视频。"""
     # 先确认 node, 再读 story/insights: 缺 node 时用户不该先看到校验错误。
     require_node()
+    # mp4 的 ffmpeg 检查同样要早于读取输入: 缺工具时不该先解析三分钟数据。
+    if args.format == "mp4":
+        require_ffmpeg()
     story_path = _story_path(args.story)
     source = load_input(
         story_path,
@@ -62,6 +75,8 @@ def cmd_render(args: argparse.Namespace) -> int:
 
     if args.format == "png":
         return _render_png(args, html, story_path=story_path, year=year)
+    if args.format == "mp4":
+        return _render_mp4(args, html, story_path=story_path, year=year)
 
     out = (
         Path(args.out).expanduser()
@@ -91,6 +106,29 @@ def _render_png(args: argparse.Namespace, html: str, *, story_path: Path, year: 
         print("未找到本机 chrome / msedge, 已回落到 Playwright 自带的 chromium (约 150 MB)")
     print(f"已写入 {len(report.paths)} 张 PNG, 共 {report.total_bytes:,} 字节")
     print(f"  {out_dir.resolve()}  ({args.aspect})")
+    return 0
+
+
+def _render_mp4(args: argparse.Namespace, html: str, *, story_path: Path, year: int) -> int:
+    """编码 MP4; `--out` 在这条路径上是文件, 与 png 的目录语义相反。"""
+    if args.out and Path(args.out).suffix.lower() != ".mp4":
+        raise RecapError("--format mp4 的 --out 是输出文件, 需要以 .mp4 结尾")
+    out = (
+        Path(args.out).expanduser()
+        if args.out
+        else _default_mp4_path(story_path, year, args.aspect)
+    )
+    report = render_mp4(html, aspect=args.aspect, out_path=out, fps=args.fps)
+    if report.channel is None:
+        print("未找到本机 chrome / msedge, 已回落到 Playwright 自带的 chromium (约 150 MB)")
+    print(f"已写入 {out.resolve()}")
+    print(
+        f"  {report.seconds:.1f}s / {report.timeline.total_frames} 帧 @{args.fps}fps, "
+        f"{report.bytes:,} 字节 ({report.bitrate_mbps:.2f} Mbps)"
+    )
+    per_card = " / ".join(f"{card.card_type} {card.video_frames}" for card in report.timeline.cards)
+    print(f"  每张卡: {per_card}")
+    print(f"  ffmpeg {report.ffmpeg.version}  {report.ffmpeg.path}")
     return 0
 
 

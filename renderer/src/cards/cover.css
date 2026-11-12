@@ -50,3 +50,86 @@
   margin-top: 34px;
   font-size: 64px;
 }
+
+/* ---------- 入场动画 (仅 MP4) ----------
+ * 只在 `data-motion="on"` 时定义: HTML/PNG 是静态产物, 打开就播放会违背"HTML 的承诺
+ * 是静态可读"; MP4 由截图的 currentTime 逐帧驱动, 页面从不自己播放 (play-state 固定
+ * 为 paused)。五段依次错开, 全部在 900ms 内收口, 与 timeline.py 的 ANIM_MS 一致。
+ */
+@keyframes cover-kicker {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cover-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes cover-year {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cover-plinth {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes cover-sub {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+html[data-motion="on"] .cover .card__kicker {
+  animation: cover-kicker 240ms var(--ease-out) both;
+  animation-play-state: paused;
+}
+
+html[data-motion="on"] .cover .card__rule {
+  transform-origin: left center;
+  animation: cover-rule 300ms var(--ease-out) 120ms both;
+  animation-play-state: paused;
+}
+
+html[data-motion="on"] .cover .cover__year {
+  animation: cover-year 500ms var(--ease-out) 200ms both;
+  animation-play-state: paused;
+}
+
+html[data-motion="on"] .cover .cover__plinth {
+  transform-origin: left center;
+  animation: cover-plinth 460ms var(--ease-out) 320ms both;
+  animation-play-state: paused;
+}
+
+html[data-motion="on"] .cover .cover__sub {
+  animation: cover-sub 480ms var(--ease-out) 420ms both;
+  animation-play-state: paused;
+}
