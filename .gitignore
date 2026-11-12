@@ -4,6 +4,9 @@
 # 本地记忆与工具状态（不属于项目产物）
 .workbuddy/
 
+# 开发提示词与阶段任务书（本地过程材料，不入库）
+dev-prompts/
+
 # 项目内工具链（uv 二进制，约 31 MB，不入库）
 .tools/
 
@@ -19,6 +22,7 @@ venv/
 .python-version
 .pytest_cache/
 .ruff_cache/
+.hypothesis/
 .pyright/
 .coverage
 htmlcov/
