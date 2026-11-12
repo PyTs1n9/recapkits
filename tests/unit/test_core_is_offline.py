@@ -1,14 +1,15 @@
-"""核心代码不发起网络请求, 也不旁路 `tz.py` 取本地时间。
+"""硬规则 1、4 的唯一实现: 核心代码不联网, 本地时间只经 `tz.py`。
 
-两条都是项目的硬约束, 而硬约束只写在文档里就会在某次重构里悄悄失效。CI 用 shell
-grep 守同样的两条, 但那只在推送后才发现; 这里的测试让 `pytest` 在本机就报红。
+**判据的对象是可执行代码, 不是文本。** `render/assets/fonts/*.txt` 是 OFL 许可证与
+来源说明 —— 它们是 `renderer/dist/` 的同步副本, 也是 wheel 里 OFL 合规的必需项, 每份
+都带源地址。把「不出现 `http(s)://`」当成对 `src/` 的全目录扫描, 会让这条规则从字体
+落地那天起就只能报红, 而这类红点最终只会被无视。
 
-只扫 `.py` 与 `.mjs`: `render/assets/fonts/*.txt` 是 OFL 许可证与来源说明, 里面的
-URL 是署名要求的内容, 不是可执行的网络请求。断言的是**代码**, 不是文本。
+所以范围钉死为 `.py` 与 `.mjs` —— 包里全部可执行的字节。判据也只有这一套: CI 的
+`uv run pytest` 跑的就是这里, 没有第二份 shell grep 可以跟它漂移。
 
-`socket` 不算出站请求 —— `recap preview` 要监听一个回环端口。例外只有它一个,
-且必须绑 `127.0.0.1`: 监听 `0.0.0.0` 会把半成品故事暴露到局域网, 与「不上传」
-的卖点直接冲突。
+`socket` 不是出站请求: `recap preview` 要监听一个回环端口。例外只有它一个, 且必须绑
+`127.0.0.1` —— 监听 `0.0.0.0` 会把半成品故事暴露到局域网, 与「不上传」直接冲突。
 """
 
 import re
@@ -16,13 +17,15 @@ from pathlib import Path
 
 SRC = Path(__file__).resolve().parent.parent.parent / "src"
 
-#: 地址与出站请求: 一旦出现, 说明核心在某处偷偷联网。
-OUTBOUND = re.compile(r"https?://|import\s+urllib|import\s+requests")
+#: 地址与出站客户端。`urllib.parse` 不算 —— 拼字符串不是请求, 真正的出口是 request。
+OUTBOUND = re.compile(
+    r"https?://"
+    r"|(?:from|import)\s+(?:urllib\.request|urllib\.error|http\.client|httpx|aiohttp|requests)\b"
+    r"|urlopen|urlretrieve"
+)
 
 #: 本地时间只经 `tz.py`; 这些写法会绕过工作区时区, 让深夜占比变成假话。
-LOCAL_TIME = re.compile(
-    r"datetime\.now|astimezone|strftime\(['\"]%H|urllib\.request|CURRENT_TIMESTAMP"
-)
+LOCAL_TIME = re.compile(r"datetime\.now|astimezone|strftime\(['\"]%H|CURRENT_TIMESTAMP")
 
 #: 允许占用端口的模块; 只有一个文件可以 import 它们。
 SERVER = re.compile(r"import\s+(?:socket|socketserver|http\.server)\b")
@@ -31,6 +34,7 @@ LOOPBACK = '("127.0.0.1", port)'
 
 
 def _code_files() -> list[Path]:
+    """包里所有可执行文件; 许可证、NOTICE、字体二进制一律不在扫描范围。"""
     return sorted(
         path for path in SRC.rglob("*") if path.is_file() and path.suffix in {".py", ".mjs"}
     )
@@ -72,8 +76,12 @@ def test_the_preview_server_binds_loopback_only() -> None:
     assert '("0.0.0.0"' not in source
 
 
-def test_license_files_are_not_scanned() -> None:
-    """许可证文本里的 URL 必须在扫描范围之外, 否则这条断言会把 OFL 判成违规。"""
+def test_licence_text_is_out_of_scope() -> None:
+    """范围必须恰好是 .py 与 .mjs。
+
+    这一条同时防止两种失效: 扫到一个空集合就"通过"(所以断言后缀集合), 以及
+    某天有人为了让它变绿而把 `.txt` 也放进来(那样规则就名存实亡)。
+    """
     scanned = {path.suffix for path in _code_files()}
 
     assert scanned == {".py", ".mjs"}

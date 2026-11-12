@@ -26,16 +26,9 @@ jobs:
       - run: uv run pyright
       - run: uv run pytest -q
 
-      # 硬规则 1、4 的可执行证据：代码不得出现网络地址与本地时间旁路。
-      # 只扫 .py / .mjs —— `src/.../assets/fonts/*.txt` 是 OFL 许可证与来源说明，
-      # 里面的 URL 是署名要求的内容，不是可执行的网络请求；把它们排除掉，
-      # 这条断言才真的是在守卫代码，而不是在跟许可证较劲。
-      - name: forbid-network-and-inline-local-time
-        shell: bash
-        run: |
-          set -e
-          ! grep -rn -E "https?://" src --include="*.py" --include="*.mjs"
-          ! grep -rn -E "datetime\.now|astimezone|strftime\('%H'\)|urllib\.request|CURRENT_TIMESTAMP" src --include="*.py"
+      # 硬规则 1、4 的断言在 tests/unit/test_core_is_offline.py，由上面的 pytest 执行。
+      # 这里曾经并存一份 shell grep：它扫整个 src/，被 assets/fonts 的 OFL 许可证判红，
+      # 而两套实现迟早会各自漂移。规则只留一处实现，范围由测试自己钉死（.py / .mjs）。
 
       # 真实导出永不进 git：入库路径的文件名拦截 + fixtures 的 PII/熵扫描。
       # 提交者不会恶意夹带，问题出在 `git add .` 上；这一步让它在合并前失败。
