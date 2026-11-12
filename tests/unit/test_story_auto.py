@@ -20,6 +20,7 @@ from recapkits.story.schema import InsightRef
 
 ROOT = Path(__file__).parent.parent
 GOLDEN = ROOT / "golden" / "snapshots" / "corpus_2024.insights.json"
+SPOTIFY_GOLDEN = ROOT / "golden" / "snapshots" / "spotify_2024.insights.json"
 FIXTURES = ROOT / "fixtures"
 INSIGHTS = FIXTURES / "insights.json"
 
@@ -51,6 +52,16 @@ def init_workspace(tmp_path: Path, payload: dict) -> Path:
 def test_golden_payload_plans_six_cards() -> None:
     """黄金语料六类洞察都在: 卡片顺序固定, 没有跳过。"""
     result = auto.plan(golden(), year=2024)
+
+    assert result.cards == templates.CARD_ORDER
+    assert result.skips == ()
+
+
+def test_spotify_payload_plans_six_cards() -> None:
+    """spotify 语料同样出满六卡: 新源不需要另一套规划规则。"""
+    payload = json.loads(SPOTIFY_GOLDEN.read_text(encoding="utf-8"))
+
+    result = auto.plan(payload, year=2024)
 
     assert result.cards == templates.CARD_ORDER
     assert result.skips == ()

@@ -11,8 +11,9 @@ from datetime import date
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from recapkits.adapters.base import IngestReport
+from recapkits.adapters.base import Adapter, FileLedger, IngestReport
 from recapkits.adapters.git_local import GitAdapter
+from recapkits.adapters.spotify import SpotifyAdapter
 from recapkits.db import (
     connect,
     count_events,
@@ -26,6 +27,16 @@ from recapkits.insights import engine, markdown
 from recapkits.insights.model import Insight
 from recapkits.tz import rebuild_local, utc_now_iso
 from recapkits.workspace import WORKSPACE, Workspace, ensure_gitignore, load_workspace
+
+#: 内置适配器注册表: 键同时是 `--source` 的取值与自动选路的候选。
+#: 顺序固定, 不用 entry point 发现 —— 那会让 detect() 依赖安装顺序, 破坏确定性。
+ADAPTERS: dict[str, Adapter] = {
+    "git": GitAdapter(),
+    "spotify": SpotifyAdapter(),
+}
+
+#: 自动选路时, 第一名与第二名差小于这个值就认为「像两个源」, 要求显式指定。
+AMBIGUITY_MARGIN = 0.2
 
 
 def _require_workspace() -> Workspace:
@@ -46,14 +57,34 @@ def _parse_date(text: str | None, flag: str) -> date | None:
         raise RecapError(f"{flag} 需要 YYYY-MM-DD, 收到 {text}") from exc
 
 
-def _pick_adapter(path: Path, source: str) -> GitAdapter:
-    """目前只有 git; auto 模式下置信度为 0 就报错, 不猜。"""
-    if source == "git":
-        return GitAdapter()
-    adapter = GitAdapter()
-    if adapter.detect(path) < 0.1:
-        raise RecapError(f"{path} 下没有 git 仓库: 换一个目录, 或用 --source git 显式指定")
-    return adapter
+def _pick_adapter(path: Path, source: str) -> Adapter:
+    """按 `--source` 取适配器; `auto` 取 detect 最高分, 分数接近就报错不猜。"""
+    if source != "auto":
+        return ADAPTERS[source]
+    ranked = sorted(
+        ((adapter.detect(path), name) for name, adapter in ADAPTERS.items()),
+        key=lambda item: (-item[0], item[1]),
+    )
+    best_score, best_name = ranked[0]
+    if best_score < 0.1:
+        names = ", ".join(ADAPTERS)
+        raise RecapError(f"{path} 无法识别数据源: 用 --source 显式指定 ({names})")
+    if len(ranked) > 1 and ranked[1][0] >= 0.1 and best_score - ranked[1][0] < AMBIGUITY_MARGIN:
+        raise RecapError(
+            f"{path} 同时像 {best_name} 与 {ranked[1][1]}, 置信度太接近: 用 --source 指定"
+        )
+    return ADAPTERS[best_name]
+
+
+def _ledger_line(ledger: FileLedger) -> str:
+    """一行文件账: 文件名、解析数、跳过数与原因明细。"""
+    if ledger.problem:
+        return f"{ledger.name}  整份跳过 ({ledger.problem})"
+    detail = ", ".join(
+        f"{reason} {count}" for reason, count in sorted(ledger.reasons.items()) if count
+    )
+    tail = f" ({detail})" if detail else ""
+    return f"{ledger.name}  解析 {ledger.rows:,} · 跳过 {ledger.skipped:,}{tail}"
 
 
 def _print_report(report: IngestReport, added: int, start: str, end: str) -> None:
@@ -71,6 +102,10 @@ def _print_report(report: IngestReport, added: int, start: str, end: str) -> Non
         print(f"警告      {warning}")
     if len(report.warnings) > 5:
         print(f"警告      另有 {len(report.warnings) - 5} 条省略")
+    if report.files:
+        print(f"逐文件    {len(report.files)} 个")
+        for ledger in report.files:
+            print(f"          {_ledger_line(ledger)}")
 
 
 def _print_insights(
@@ -134,7 +169,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     )
     ensure_gitignore()
     print(f"已创建工作区 {root} (tz={args.tz}, year={year})")
-    print("下一步: recap import <导出目录> --source git")
+    print("下一步: recap import <导出目录>  (自动识别 git / spotify, 或用 --source 指定)")
     return 0
 
 
@@ -156,8 +191,8 @@ def cmd_import(args: argparse.Namespace) -> int:
         init_schema(conn)
         before = count_events(conn)
         try:
-            report = adapter.ingest(path, conn, since=since, until=until)
-        except (OSError, RuntimeError) as exc:
+            report = adapter.ingest(path, conn, since=since, until=until, tz=workspace.tz)
+        except (OSError, RuntimeError, ValueError) as exc:
             raise RecapError(str(exc)) from exc
         rebuild_local(conn, workspace.tz)
         start, end = engine.review_window(workspace.year)

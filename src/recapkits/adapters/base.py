@@ -1,7 +1,11 @@
 """适配器契约: 检测、导入、导入报告。
 
-只有一个适配器, 所以这里没有工厂、没有注册表、没有插件加载器。
-等到第三个适配器出现, 再谈 entry point 注册。
+适配器是**内置**的: 每个一等源都随包发布, 由 `commands.ADAPTERS` 这张有序表注册。
+entry point 发现留给第三方插件阶段 —— 它会让 `detect()` 的顺序依赖安装顺序,
+破坏确定性, 而本阶段没有第三方插件要接。
+
+`IngestReport.files` 是逐文件账目: 除整份损坏的文件外, 每个文件都满足
+`rows + skipped == 源文件行数`, 且 `skipped` 等于各条原因的计数之和。
 """
 
 import sqlite3
@@ -9,6 +13,26 @@ from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Protocol
+
+
+@dataclass(frozen=True)
+class FileLedger:
+    """一个文件的账: 解析多少行、跳过多少行、每个原因各多少条。
+
+    `problem` 非空表示整份文件读不出来 (坏 JSON、编码不对、顶层不是数组)。
+    这时行数本身不可知, 恒等式对它不适用, 报告里必须显式写「整份跳过」。
+    """
+
+    name: str
+    rows: int = 0
+    skipped: int = 0
+    reasons: dict[str, int] = field(default_factory=dict)
+    problem: str | None = None
+
+    @property
+    def total(self) -> int:
+        """源文件里我们认得的行数; 整份损坏的文件为 0。"""
+        return self.rows + self.skipped
 
 
 @dataclass
@@ -24,6 +48,7 @@ class IngestReport:
     src_hash: str
     coverage: float | None = None
     warnings: list[str] = field(default_factory=list)
+    files: list[FileLedger] = field(default_factory=list)
 
 
 class Adapter(Protocol):
@@ -43,6 +68,12 @@ class Adapter(Protocol):
         *,
         since: date | None = None,
         until: date | None = None,
+        tz: str = "UTC",
     ) -> IngestReport:
-        """解析并写入; 单个单元失败只记警告, 不中断整次导入。"""
+        """解析并写入; 单个单元失败只记警告, 不中断整次导入。
+
+        `tz` 只给「源自带 UTC 但无本地偏移」的源用 (spotify / netflix):
+        它们要用工作区时区才能算出 `--since/--until` 该比哪一天。
+        git 这类自带偏移的源忽略它。
+        """
         ...

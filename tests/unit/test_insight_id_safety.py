@@ -25,18 +25,20 @@ EAST_EIGHT = timezone(timedelta(hours=8))
 ENTITY = "龘 Repo.v2"
 
 
-def seed(conn: sqlite3.Connection, entity: str) -> None:
+def seed(conn: sqlite3.Connection, entity: str, *, source: str = "git") -> None:
     """3 个活跃日 x 20 条, 刚好越过集中度检测器的 50 条门槛。"""
+    kind = "commit" if source == "git" else "play"
+    offset = 480 if source == "git" else None
     events = [
         Event(
-            source="git",
-            kind="commit",
+            source=source,
+            kind=kind,
             ts_utc=to_utc_iso(datetime(2024, 3, 10 + day, 9 + index % 10, tzinfo=EAST_EIGHT)),
-            tz_offset_min=480,
-            title="commit",
+            tz_offset_min=offset,
+            title="记录",
             subtitle=entity,
             value=1.0,
-            row_hash=f"{(day * 20 + index):016x}",
+            row_hash=f"{source}{day * 20 + index:012x}",
         )
         for day in range(3)
         for index in range(20)
@@ -45,9 +47,9 @@ def seed(conn: sqlite3.Connection, entity: str) -> None:
     rebuild_local(conn, TZ)
 
 
-def payload_of(conn: sqlite3.Connection) -> dict:
+def payload_of(conn: sqlite3.Connection, source: str = "git") -> dict:
     selected = engine.select(engine.run(conn, tz=TZ, year=YEAR), top=10)
-    return render(selected, sources=["git"], event_count=60, tz=TZ)
+    return render(selected, sources=[source], event_count=60, tz=TZ)
 
 
 def test_entity_names_are_escaped_into_ids(conn: sqlite3.Connection) -> None:
@@ -62,12 +64,9 @@ def test_entity_names_are_escaped_into_ids(conn: sqlite3.Connection) -> None:
     assert any(fact.label == ENTITY for fact in conc.facts)
 
 
-def test_story_can_reference_the_escaped_id(conn: sqlite3.Connection) -> None:
-    """端到端: 这条洞察能被 ranking 卡引用并通过 V1-V7。"""
-    seed(conn, ENTITY)
-    payload = payload_of(conn)
-    conc = next(item for item in payload["insights"] if item["kind"] == "conc.top_entity")
-    story = {
+def ranking_story(insight_id: str) -> dict:
+    """一张引用给定洞察的 ranking 卡; 用来验证 id 真的能被 V1 接受。"""
+    return {
         "version": 1,
         "meta": {
             "year": YEAR,
@@ -81,16 +80,37 @@ def test_story_can_reference_the_escaped_id(conn: sqlite3.Connection) -> None:
             {
                 "id": "ranking",
                 "type": "ranking",
-                "insight": conc["id"],
+                "insight": insight_id,
                 "copy": {
                     "headline": "出现最多的项目",
-                    "sub": "首位占 {{" + conc["id"] + ".share}}",
+                    "sub": "首位占 {{" + insight_id + ".share}}",
                 },
             }
         ],
     }
 
+
+def test_story_can_reference_the_escaped_id(conn: sqlite3.Connection) -> None:
+    """端到端: 这条洞察能被 ranking 卡引用并通过 V1-V7。"""
+    seed(conn, ENTITY)
+    payload = payload_of(conn)
+    conc = next(item for item in payload["insights"] if item["kind"] == "conc.top_entity")
+    story = ranking_story(str(conc["id"]))
+
     errors = validate_story(Story.from_dict(story), build_refs(payload))
+
+    assert errors == []
+
+
+def test_spotify_artist_ids_are_referenceable(conn: sqlite3.Connection) -> None:
+    """艺人名里的生僻字同样要被转义, 并且转义后的 id 仍能被故事引用。"""
+    seed(conn, ENTITY, source="spotify")
+    payload = payload_of(conn, source="spotify")
+    conc = next(item for item in payload["insights"] if item["kind"] == "conc.top_entity")
+
+    assert str(conc["id"]).startswith("conc.top_entity:artist:")
+    assert STRICT_PLACEHOLDER.match(str(conc["id"]))
+    errors = validate_story(Story.from_dict(ranking_story(str(conc["id"]))), build_refs(payload))
 
     assert errors == []
 

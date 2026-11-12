@@ -141,8 +141,12 @@ class GitAdapter:
         *,
         since: date | None = None,
         until: date | None = None,
+        tz: str = "UTC",
     ) -> IngestReport:
-        """扫描目录下的仓库并写入 events; 逐仓库容错。"""
+        """扫描目录下的仓库并写入 events; 逐仓库容错。
+
+        `tz` 不参与计算: git 的作者时间自带偏移, 比工作区时区更可信。
+        """
         if shutil.which("git") is None:
             raise RuntimeError("未找到 git: 请先安装 git, 或等待 csv 适配器")
 

@@ -8,6 +8,8 @@ import pytest
 from recapkits.cli import main
 from recapkits.db import connect
 
+SPOTIFY = Path(__file__).parent.parent / "fixtures" / "spotify"
+
 
 def test_init_writes_config_and_gitignore(tmp_path: Path, monkeypatch) -> None:
     """init 建目录、写配置、把 .recapkits/ 加进 .gitignore。"""
@@ -107,3 +109,65 @@ def test_import_report_prints_window(tmp_path: Path, monkeypatch, git_repo: Path
 
     assert main(["import", str(git_repo), "--source", "git"]) == 0
     assert "窗口 2024-01-01 至 2024-12-31" in capsys.readouterr().out
+
+
+def test_import_auto_detects_spotify(tmp_path: Path, monkeypatch, capsys) -> None:
+    """不给 --source 时, 按 detect 最高分选中 spotify。"""
+    monkeypatch.chdir(tmp_path)
+    main(["init", "--year", "2024"])
+    capsys.readouterr()
+
+    assert main(["import", str(SPOTIFY)]) == 0
+    assert "源        spotify" in capsys.readouterr().out
+
+
+def test_import_auto_refuses_ambiguous_directory(
+    tmp_path: Path, monkeypatch, git_repo: Path, capsys
+) -> None:
+    """同时像 git 与 spotify 的目录: 报错要求显式指定, 不按字母序偷选。"""
+    monkeypatch.chdir(tmp_path)
+    main(["init", "--year", "2024"])
+    (git_repo / "Streaming_History_Audio_2024_0.json").write_text("[]", encoding="utf-8")
+    capsys.readouterr()
+
+    assert main(["import", str(git_repo)]) == 1
+    err = capsys.readouterr().err
+    assert "同时像" in err
+    assert "--source" in err
+
+
+def test_import_prints_a_ledger_for_every_file(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """逐文件账必须能查: 文件名、解析数、跳过数与原因。"""
+    monkeypatch.chdir(tmp_path)
+    main(["init", "--year", "2024"])
+    capsys.readouterr()
+
+    assert main(["import", str(SPOTIFY), "--source", "spotify"]) == 0
+
+    out = capsys.readouterr().out
+    assert "逐文件" in out
+    assert "Streaming_History_Audio_2023-2024_0.json" in out
+    assert "incognito 1" in out
+    assert "short_play 3" in out
+
+
+def test_spotify_insights_are_byte_identical_after_reimport(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    """导入两次 + 两次 insights, 产物逐字节相同, 事件数不变。"""
+    monkeypatch.chdir(tmp_path)
+    main(["init", "--year", "2024"])
+    main(["import", str(SPOTIFY), "--source", "spotify"])
+    main(["insights", "--top", "10"])
+    first = (tmp_path / ".recapkits" / "out" / "insights.json").read_bytes()
+    capsys.readouterr()
+
+    assert main(["import", str(SPOTIFY), "--source", "spotify"]) == 0
+    assert main(["insights", "--top", "10"]) == 0
+    second = (tmp_path / ".recapkits" / "out" / "insights.json").read_bytes()
+
+    assert first == second
+    assert main(["doctor"]) == 0
+    assert "209 条事件" in capsys.readouterr().out
