@@ -1,49 +1,22 @@
-"""校验调度: V1 占位符、V3 类型兼容、V4 槽位长度、V5 高敏授权。
+"""校验调度: V1 占位符、V3 卡片规则、V4 槽位长度、V5 高敏授权。
 
-V2 / V6 / V7 是纯文本规则, 放在 rules.py; 两边都只依赖 schema 里的类型。
+V2 / V6 / V7 是纯文本规则, 放在 rules.py; V3 的类型/序列/证据形态在 card_rules.py。
+两边都只依赖 schema 里的类型。
 """
 
 import re
-from typing import Any
 
+from recapkits.story.card_rules import check_card_rules
 from recapkits.story.measure import SLOT_BUDGET_PX, Measure, default_measure
+from recapkits.story.refs import build_refs
 from recapkits.story.rules import PLACEHOLDER, check_causality, check_names, check_numbers
 from recapkits.story.schema import Card, InsightRef, Story, StoryError
+
+__all__ = ["build_refs", "validate_story"]
 
 #: 占位符里允许的字符。必须包含 `-`, 因为 disc.* 的 id 带日期
 #: (例如 disc.longest_gap:git:2024:2024-03-10); 少了它, 这类洞察永远无法被引用。
 STRICT_PLACEHOLDER = re.compile(r"^[a-z0-9_.:-]+$")
-
-#: 类型兼容: (kind 前缀, 精确 kind)。cover 与 summary-grid 不限。
-COMPATIBILITY: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
-    "big-number": (("vol.", "time."), ()),
-    "ranking": (("conc.",), ()),
-    "heatmap": (("disc.",), ("time.weekday_rhythm",)),
-    "clock": ((), ("time.hour_rhythm",)),
-}
-
-
-def build_refs(payload: dict[str, Any]) -> dict[str, InsightRef]:
-    """从 insights.json 的结构里抽出校验所需的引用表。"""
-    refs: dict[str, InsightRef] = {}
-    for item in payload.get("insights", []):
-        facts_raw = [item.get("headline_fact", {}), *item.get("facts", [])]
-        facts = {
-            str(fact["key"]): str(fact.get("display", ""))
-            for fact in facts_raw
-            if isinstance(fact, dict) and "key" in fact
-        }
-        labels = [str(fact.get("label", "")) for fact in facts_raw if isinstance(fact, dict)]
-        headline = item.get("headline_fact", {})
-        refs[str(item["id"])] = InsightRef(
-            id=str(item["id"]),
-            kind=str(item.get("kind", "")),
-            sensitivity=str(item.get("sensitivity", "low")),
-            facts=facts,
-            labels=labels,
-            headline=str(headline.get("display", "")) if isinstance(headline, dict) else "",
-        )
-    return refs
 
 
 def _card_allowed(card: Card) -> list[str]:
@@ -108,41 +81,6 @@ def _check_placeholders(
                 )
             )
     return errors
-
-
-def _check_compatibility(
-    card_index: int, card: Card, refs: dict[str, InsightRef]
-) -> list[StoryError]:
-    """V3: 卡片类型决定它能承载哪类洞察。"""
-    if not card.insight:
-        return []
-    ref = refs.get(card.insight)
-    if ref is None:
-        return [
-            StoryError(
-                "CARD_UNKNOWN_INSIGHT",
-                card_index,
-                None,
-                card.insight,
-                "已存在的洞察 id",
-                "先确认 insights.json 里有这个 id",
-            )
-        ]
-    if card.type in {"cover", "summary-grid"}:
-        return []
-    prefixes, exact = COMPATIBILITY.get(card.type, ((), ()))
-    if ref.kind in exact or any(ref.kind.startswith(prefix) for prefix in prefixes):
-        return []
-    return [
-        StoryError(
-            "CARD_TYPE_MISMATCH",
-            card_index,
-            None,
-            f"{card.type} <- {ref.kind}",
-            "类型兼容的组合",
-            "换一张卡型, 或换一条同族的洞察",
-        )
-    ]
 
 
 def _check_sensitivity(
@@ -210,7 +148,7 @@ def validate_story(
             if not allow_unknown_names:
                 errors += check_names(index, slot, text, allowed, refs)
             errors += _check_length(index, slot, text, story.meta.theme, measure)
-        errors += _check_compatibility(index, card, refs)
+        errors += check_card_rules(index, card, refs)
         errors += _check_sensitivity(index, card, refs, allow_sensitive)
         if card.type == "summary-grid" and len(allowed) < 3:
             errors.append(

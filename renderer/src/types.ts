@@ -20,6 +20,27 @@ export interface BakedCopy {
   kicker?: string;
 }
 
+/** 仅供渲染的序列; 它不是文案, 永远不出现在 copy 里。 */
+export interface BakedSeries {
+  axis: "hour" | "weekday" | "day";
+  keys: string[];
+  values: number[];
+  unit: "share" | "count";
+}
+
+/** ranking 的一行; value 已是 display 字符串, unit 只用于决定是否加后缀。 */
+export interface BakedRow {
+  label: string;
+  value: string;
+  unit: string | null;
+}
+
+/** summary-grid 的一个 fact; 第一个占双列。 */
+export interface BakedFact {
+  label: string;
+  value: string;
+}
+
 export interface BakedCard {
   id: string;
   type: CardType;
@@ -30,6 +51,12 @@ export interface BakedCard {
    */
   number?: string | null;
   insight?: string | null;
+  /** heatmap / clock 的序列; 其余卡型没有这个键。 */
+  series?: BakedSeries;
+  /** ranking 的行; 只含 rank_* 事实, 最多 5 行。 */
+  rows?: BakedRow[];
+  /** summary-grid 的 fact; 最多 9 个。 */
+  facts?: BakedFact[];
 }
 
 export interface BakedMeta {

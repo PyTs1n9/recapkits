@@ -6,7 +6,7 @@
 
 import sqlite3
 
-from recapkits.insights.model import Fact, Insight, Period
+from recapkits.insights.model import Fact, Insight, Period, Series
 
 #: 低于这些门槛就不出对应类别的洞察, 宁缺不凑。
 MIN_EVENTS_FOR_CONCENTRATION = 50
@@ -56,6 +56,7 @@ def make_insight(
     novelty: str,
     signal: float,
     caveats: list[str],
+    series: Series | None = None,
 ) -> Insight:
     """组装一条未打分的洞察; `signal` 必填, 分数由 scoring 统一填充。"""
     return Insight(
@@ -75,6 +76,7 @@ def make_insight(
         data_sufficiency="ok",
         gated=[],
         caveats=caveats,
+        series=series,
     )
 
 

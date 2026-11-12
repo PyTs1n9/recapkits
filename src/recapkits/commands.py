@@ -5,16 +5,12 @@
 
 import argparse
 import json
-import platform
-import shutil
-import subprocess
 import sys
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from recapkits import __version__
 from recapkits.adapters.base import IngestReport
 from recapkits.adapters.git_local import GitAdapter
 from recapkits.db import (
@@ -26,7 +22,7 @@ from recapkits.db import (
 )
 from recapkits.emit import render, write
 from recapkits.errors import RecapError
-from recapkits.insights import engine
+from recapkits.insights import engine, markdown
 from recapkits.insights.model import Insight
 from recapkits.tz import rebuild_local, utc_now_iso
 from recapkits.workspace import WORKSPACE, Workspace, ensure_gitignore, load_workspace
@@ -81,7 +77,9 @@ def _print_insights(
     insights: Sequence[Insight], stats: dict[str, tuple[int, int]], *, explain: bool
 ) -> None:
     """人类可读输出: 一行一个分数加一句事实; --explain 再补分项与充足度。"""
-    for rank, insight in enumerate(insights, start=1):
+    ranked = [item for item in insights if item.kind not in engine.RENDER_ONLY_KINDS]
+    auxiliary = [item for item in insights if item.kind in engine.RENDER_ONLY_KINDS]
+    for rank, insight in enumerate(ranked, start=1):
         head = insight.headline_fact
         print(f"{rank:>2}. {insight.score:+.3f}  {insight.kind:<22} {head.label} {head.display}")
         if not explain:
@@ -93,6 +91,26 @@ def _print_insights(
         print(f"    {parts}")
         events, active_days = stats.get(insight.source, (0, 0))
         print(f"    数据充足度: {insight.data_sufficiency} ({events} 事件 / {active_days} 活跃日)")
+    if auxiliary:
+        kinds = ", ".join(item.kind for item in auxiliary)
+        print(f"    (另有 {len(auxiliary)} 条渲染专用序列: {kinds}; 不参与排名)")
+
+
+def _print_payload_sizes(payload: dict[str, object]) -> None:
+    """只报字节数, 不打印内容: 用户要知道自己会发出去多少。"""
+    full = len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+    raw_insights = payload.get("insights")
+    insights: list[object] = raw_insights if isinstance(raw_insights, list) else []
+    stripped = [
+        {key: value for key, value in item.items() if key != "series"}
+        for item in insights
+        if isinstance(item, dict)
+    ]
+    bare = len(json.dumps({**payload, "insights": stripped}, ensure_ascii=False).encode("utf-8"))
+    delta = full - bare
+    share = (delta / full) if full else 0.0
+    print(f"payload      {full:,} 字节 · {len(stripped)} 条洞察")
+    print(f"不含 series  {bare:,} 字节 · series {delta:,} 字节 ({share:.1%})")
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -176,68 +194,44 @@ def cmd_insights(args: argparse.Namespace) -> int:
             raise RecapError(str(exc)) from exc
         stats = engine.source_stats(conn, period)
         selected = engine.select(candidates, top=args.top)
+        ranked = [item for item in selected if item.kind not in engine.RENDER_ONLY_KINDS]
+        auxiliary = [item for item in selected if item.kind in engine.RENDER_ONLY_KINDS]
+        sources = [name for name, _ in list_sources(conn)]
         payload = render(
             selected,
-            sources=[name for name, _ in list_sources(conn)],
+            sources=sources,
             event_count=count_events(conn),
             tz=workspace.tz,
         )
         out_path = write(workspace.out_path, payload)
+        md_path = workspace.out_path.with_name("insights.md")
+        if args.md:
+            md_path.parent.mkdir(parents=True, exist_ok=True)
+            md_path.write_text(
+                markdown.render_markdown(
+                    ranked,
+                    period=period,
+                    stats=stats,
+                    sources=sources,
+                    event_count=count_events(conn),
+                    render_only=auxiliary,
+                ),
+                encoding="utf-8",
+            )
 
+        if args.payload_preview:
+            _print_payload_sizes(payload)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return 0
         _print_insights(selected, stats, explain=args.explain)
-        print(f"\n候选 {len(candidates)} 条, 选出 {len(selected)} 条, 已写入 {out_path}")
-        if not selected:
+        suffix = f" + {len(auxiliary)} 条渲染专用" if auxiliary else ""
+        print(f"\n候选 {len(candidates)} 条, 选出 {len(ranked)} 条{suffix}")
+        print(f"已写入 {out_path}")
+        if args.md:
+            print(f"已写入 {md_path}")
+        if not ranked:
             print("没有达到样本门槛的洞察: 换更长窗口, 或再导入一个源", file=sys.stderr)
         return 0
     finally:
         conn.close()
-
-
-def cmd_doctor(args: argparse.Namespace) -> int:
-    """诊断环境与工作区: 只打印计数, 不打印任何数据内容。"""
-    print(f"recapkits  {__version__}")
-    print(f"python     {platform.python_version()} ({sys.platform})")
-    git = shutil.which("git")
-    if git:
-        completed = subprocess.run([git, "--version"], capture_output=True, text=True, check=False)
-        print(f"git        {completed.stdout.strip() or git}")
-    else:
-        print("git        未找到; import --source git 不可用")
-
-    node = shutil.which("node")
-    if node:
-        completed = subprocess.run([node, "--version"], capture_output=True, text=True, check=False)
-        print(f"node       {completed.stdout.strip() or node}")
-    else:
-        print("node       未找到; render 不可用 (HTML 由 renderer 构建产物产出)")
-
-    try:
-        ZoneInfo("Asia/Shanghai")
-        print("时区数据   可用")
-    except ZoneInfoNotFoundError:
-        print("时区数据   缺失; Windows 需要 tzdata")
-
-    workspace = load_workspace()
-    if workspace is None:
-        print("workspace  未初始化; 先运行 recap init")
-        return 0
-    print(f"workspace  {WORKSPACE}/  tz={workspace.tz}  year={workspace.year}")
-    if not workspace.db_path.is_file():
-        print("events     数据库不存在")
-        return 0
-
-    conn = connect(workspace.db_path)
-    try:
-        init_schema(conn)
-        total = count_events(conn)
-        sources = list_sources(conn)
-    finally:
-        conn.close()
-
-    print(f"events     {len(sources)} 个源, {total:,} 条事件")
-    for name, count in sources:
-        print(f"           {name}  {count:,}")
-    return 0

@@ -34,6 +34,42 @@ jobs:
           ! grep -rn -E "https?://" src
           ! grep -rn -E "datetime\.now|astimezone|strftime\('%H'\)|urllib\.request|CURRENT_TIMESTAMP" src
 
+  # render 测试用 skipif(needs_node): 无 node 的环境会全部跳过而仍然"全绿"。
+  # 这个 job 用一条独立断言把"因为跳过而全绿"挡住。
+  node-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: node-must-exist-and-be-22
+        run: |
+          set -euo pipefail
+          which node
+          command -v node
+          node --version
+          major="$(node -p "process.versions.node.split('.')[0]")"
+          test "$major" -ge 22
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv sync
+
+      - name: render-tests-must-not-skip
+        run: |
+          set -euo pipefail
+          uv run pytest -q tests/unit/test_render_pipeline.py tests/unit/test_render_cards.py -rs \
+            | tee render-tests.log
+          if grep -q "skipped" render-tests.log; then
+            echo "render 测试被跳过: node 或 renderer assets 缺失" >&2
+            exit 1
+          fi
+
   # 防止"改了前端忘了重建": assets/ 是入库的, dist/ 是构建产物, 两者必须一致。
   # 失效的后果很隐蔽 —— 用户拿到的 wheel 里是旧界面, 且不会有任何报错。
   renderer:

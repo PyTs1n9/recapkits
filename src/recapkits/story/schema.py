@@ -8,6 +8,8 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from recapkits.insights.model import Series
+
 CARD_TYPES = ("cover", "big-number", "ranking", "heatmap", "clock", "summary-grid")
 COPY_SLOTS = ("headline", "sub", "kicker")
 
@@ -40,11 +42,25 @@ class StoryError:
 
 
 @dataclass(frozen=True)
+class RefFact:
+    """被引洞察里的一个事实; 渲染 ranking / summary-grid 需要结构化字段。"""
+
+    key: str
+    label: str
+    value: float | str
+    unit: str | None
+    display: str
+
+
+@dataclass(frozen=True)
 class InsightRef:
     """校验只需要洞察的这几样: 身份、类型、敏感度、事实与标签。
 
     `headline` 是被引洞察 `headline_fact.display` 的原文, 渲染 `big-number` 时
     作为巨型数字使用 —— 它已经过校验, 可以直接进产物。
+
+    `fact_list` 保留事实的完整结构与顺序, `facts` 只保留 key -> display 的映射,
+    供占位符校验使用; 两者来自同一份输入, 不允许各算一套。
     """
 
     id: str
@@ -53,6 +69,8 @@ class InsightRef:
     facts: dict[str, str]
     labels: list[str]
     headline: str = ""
+    fact_list: tuple[RefFact, ...] = ()
+    series: Series | None = None
 
 
 def format_errors(errors: list[StoryError]) -> str:

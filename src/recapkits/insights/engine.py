@@ -10,8 +10,12 @@ from recapkits.insights.detectors import common, generic
 from recapkits.insights.model import Insight, Period
 from recapkits.tz import utc_now_iso
 
-#: 本期没有上一期数据, 同比类分量一律关闭; 阶段 6 接入上一期后改成 True。
+#: 本期没有上一期数据, 同比类分量一律关闭; 后续接入上一期后改成 True。
 HAS_PREVIOUS = False
+
+#: 只供渲染、不参与排名的洞察。它们必须在截断后无条件附回输出, 否则
+#: story.json 引用 vol.daily_series 时会在 insights.json 里找不到。
+RENDER_ONLY_KINDS = frozenset({"vol.daily_series"})
 
 
 def review_window(year: int, today: str | None = None) -> tuple[str, str]:
@@ -89,10 +93,18 @@ def run(conn: sqlite3.Connection, *, tz: str, year: int, today: str | None = Non
 
 
 def select(insights: list[Insight], top: int = 10) -> list[Insight]:
-    """按 (score desc, kind, id) 全序排序, 同一 kind 最多取 1 个。"""
+    """按 (score desc, kind, id) 全序排序, 同一 kind 最多取 1 个。
+
+    渲染专用洞察(见 `RENDER_ONLY_KINDS`)不进入排序池, 但在截断之后原样附回:
+    它们不是卡, 不能被 `--top` 挤掉。
+    """
     if top < 1:
         raise ValueError("--top 必须大于 0")
-    ordered = sorted(insights, key=lambda item: (-item.score, item.kind, item.id))
+    ranked = [item for item in insights if item.kind not in RENDER_ONLY_KINDS]
+    auxiliary = sorted(
+        (item for item in insights if item.kind in RENDER_ONLY_KINDS), key=lambda item: item.id
+    )
+    ordered = sorted(ranked, key=lambda item: (-item.score, item.kind, item.id))
     picked: list[Insight] = []
     seen_kinds: set[str] = set()
     for insight in ordered:
@@ -102,4 +114,4 @@ def select(insights: list[Insight], top: int = 10) -> list[Insight]:
         picked.append(insight)
         if len(picked) >= top:
             break
-    return picked
+    return [*picked, *auxiliary]

@@ -5,8 +5,9 @@
 - 变更记录：
   - 2026-11-11 阶段 4a：`insights.json` 每条洞察新增 `data_sufficiency` 与 `gated` 两个键，用于标注「数据量闸门」；`score_parts` 保留被置零的分量，其余字段未动。原因：薄数据下 `concentration` 与 `discontinuity` 会奖励「数据少」，需要可解释地关闭。
   - 2026-11-11 阶段 5a：`score_parts` 的键集合由 `{deviation, rarity, discontinuity, concentration, obviousness, sensitivity}` 改为 `{signal, deviation, discontinuity, sensitivity}`，仍存**已加权**值，`score == sum(score_parts)` 不变；`gated` 取值域收窄为 `deviation` / `discontinuity`（原因统一为「没有上一期」）。原因：一期公式按「六个通用分量」设计，但每个检测器能被激活的分量不同，`time.*` 恒为 0、`disc.*` 恒为 0.5、`conc.*` 被自身惩罚项封顶为负；`rarity`（静态先验表尚不存在）、`concentration`（被 signal 取代）、`obviousness`（属选卡冗余治理，不是分数问题）三项删除。`novelty` 字段保留但不再进入打分。
+  - 2026-11-12 阶段 6a：`insights.json` 每条洞察新增**可选** `series: {axis, keys, values, unit}`；新增第 8 个检测器 `vol.daily_series`。原因：`clock` 需要 24 小时分布、`heatmap` 需要逐日强度，而 `Fact.value` 只允许 `float | str`，没有地方放序列；若把序列写进 `display`，V1 的占位符校验会失去意义。约束：`len(keys) == len(values)`；`axis="hour"` 的键恰为 `"0".."23"`、`axis="weekday"` 恰为 `"0".."6"`（0=周一）、`axis="day"` 为覆盖审查窗口每一天的 `YYYY-MM-DD`（含零值）；`unit="share"` 时求和为 1.0（容差 1e-6）；无序列时不写该键。`vol.daily_series` 的 `signal` 固定 `0.0`，不参与排名，但 `select()` 必须在截断后无条件附回输出。其余字段未动。
 
-本文件是四个契约的唯一事实源。以下内容在 `PROMPT-起步.md` §5 中定义为「照抄，不是参考」，因此**逐字抄录，不做改写、不在示例上增删字段**（上述变更记录授权的两个键除外）。
+本文件是四个契约的唯一事实源。以下内容在 `PROMPT-起步.md` §5 中定义为「照抄，不是参考」，因此**逐字抄录，不做改写、不在示例上增删字段**（上述变更记录授权的字段除外）。
 
 ---
 
@@ -115,6 +116,25 @@ CREATE TABLE IF NOT EXISTS build (
 - `gated` 列出被闸门关闭的分量，顺序固定。阶段 5a 起**只可能含 `deviation` 与 `discontinuity`**，
   理由统一为「没有上一期数据」；4a 时期按数据量关闭 `concentration` 的语义随该分量一起删除。
   被关闭的分量**仍然保留在 `score_parts` 里，值为 `0.0`**，`score` 依旧是四个分量之和。
+
+**`series`（阶段 6a 新增）**
+
+```json
+"series": {
+  "axis": "hour" | "weekday" | "day",
+  "keys": ["0", "1", "2", "..."],
+  "values": [0.011, 0.024, 0.031, "..."],
+  "unit": "share" | "count"
+}
+```
+
+- `len(keys) == len(values)`。
+- `axis="hour"`：`keys` 恰为 `"0".."23"`；`axis="weekday"`：恰为 `"0".."6"`（0=周一）。
+- `axis="day"`：`keys` 为 `YYYY-MM-DD`，严格升序，覆盖审查窗口的每一天（含零值），
+  长度等于窗口天数。
+- `unit="share"`：`values` 之和为 1.0（容差 1e-6）。
+- 无序列的洞察**不写这个键**（不写 `null`）。
+- 序列不进入 `display`；`display` 永远是标量。
 
 ---
 

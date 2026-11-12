@@ -15,7 +15,7 @@ from recapkits.insights.detectors.common import (
     scope,
     standard_caveats,
 )
-from recapkits.insights.model import Fact, Insight, Period
+from recapkits.insights.model import Fact, Insight, Period, Series, day_keys
 
 
 def detect(conn: sqlite3.Connection, *, source: str, period: Period) -> list[Insight]:
@@ -26,6 +26,7 @@ def detect(conn: sqlite3.Connection, *, source: str, period: Period) -> list[Ins
 
     total_events = sum(count for _, count in daily)
     found = _vol_total(conn, source, period, total_events, len(daily))
+    found += _vol_daily_series(daily, source, period)
     found += _vol_busiest_day(daily, source, period)
     if total_events >= MIN_EVENTS_FOR_CONCENTRATION:
         found += _conc_top_entity(conn, source, period, total_events)
@@ -72,6 +73,40 @@ def _vol_total(
             novelty="constant",
             signal=scoring.signal_vol_total(),
             caveats=standard_caveats(period),
+        )
+    ]
+
+
+def _vol_daily_series(daily: list[tuple[str, int]], source: str, period: Period) -> list[Insight]:
+    """体量: 窗口内逐日事件数, 只供 heatmap 渲染。
+
+    `signal` 固定 0.0: 它不参与排名, 也不应该因为"序列很长"而获得分数。
+    序列必须覆盖窗口的每一天; 没有事件的日期补 0, 未来日期由窗口本身截断,
+    渲染器据此区分"零"与"尚未发生"。
+    """
+    counts = dict(daily)
+    keys = day_keys(period.start, period.end)
+    values = tuple(float(counts.get(key, 0)) for key in keys)
+    total = int(sum(values))
+    sql = (
+        "SELECT l.local_date AS d, COUNT(*) AS n "
+        + scope(source, period)
+        + " GROUP BY l.local_date ORDER BY l.local_date"
+    )
+    return [
+        make_insight(
+            ident=f"vol.daily_series:{source}:{period.start[:4]}",
+            kind="vol.daily_series",
+            source=source,
+            period=period,
+            headline=Fact("events", "窗口内事件数", total, "count", f"{total:,}"),
+            facts=[Fact("days", "窗口天数", len(keys), "count", f"{len(keys):,}")],
+            sql=sql,
+            rows=len(daily),
+            novelty="constant",
+            signal=0.0,
+            caveats=standard_caveats(period, "逐日序列补齐了没有事件的日期; 它只供渲染"),
+            series=Series(axis="day", keys=keys, values=values, unit="count"),
         )
     ]
 

@@ -63,8 +63,8 @@ def test_number_comes_from_headline_fact(refs) -> None:
     assert bake_card(card, refs)["number"] == "220"
 
 
-def test_number_falls_back_to_first_evidence(refs) -> None:
-    """没有 insight 时退回首条 evidence —— ranking 落地前, 集中度只能借 evidence 上卡。"""
+def test_number_does_not_fall_back_to_evidence(refs) -> None:
+    """ranking 上线后, big-number 不再借 evidence 承载数字; 没有 insight 就没有数字。"""
     card = Card.from_dict(
         {
             "id": "c1",
@@ -75,7 +75,7 @@ def test_number_falls_back_to_first_evidence(refs) -> None:
         0,
     )
 
-    assert bake_card(card, refs)["number"] == "62%"
+    assert bake_card(card, refs)["number"] is None
 
 
 def test_cover_has_no_number(refs) -> None:

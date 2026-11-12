@@ -14,6 +14,7 @@ YEAR = 2024
 FULL_KINDS = {
     "vol.total",
     "vol.busiest_day",
+    "vol.daily_series",
     "conc.top_entity",
     "time.hour_rhythm",
     "time.weekday_rhythm",
@@ -72,7 +73,7 @@ def test_thin_level_keeps_detectors_but_gates_comparison(conn) -> None:
 
     found = engine.run(conn, tz=TZ, year=YEAR)
 
-    assert kinds_of(found) == {"vol.total", "vol.busiest_day"}
+    assert kinds_of(found) == {"vol.total", "vol.busiest_day", "vol.daily_series"}
     assert {item.data_sufficiency for item in found} == {"thin"}
     assert {tuple(item.gated) for item in found} == {("deviation", "discontinuity")}
     for item in found:
@@ -80,8 +81,8 @@ def test_thin_level_keeps_detectors_but_gates_comparison(conn) -> None:
         assert item.score_parts["deviation"] == 0.0
 
 
-def test_forty_active_days_yield_all_seven_kinds(conn) -> None:
-    """40 个活跃日、80 条事件, 中间留 10 天空档: 7 个 kind 全部出现。"""
+def test_forty_active_days_yield_all_eight_kinds(conn) -> None:
+    """40 个活跃日、80 条事件, 中间留 10 天空档: 8 个 kind 全部出现。"""
     seed(conn, list(range(20)) + list(range(30, 50)))
 
     found = engine.run(conn, tz=TZ, year=YEAR)
@@ -135,15 +136,20 @@ def test_absence_scores_higher_than_constant(conn) -> None:
 
 
 def test_select_is_total_order_with_one_per_kind(conn) -> None:
-    """选卡: 全序 (score desc, kind, id), 同一 kind 只取 1 个。"""
+    """选卡: 全序 (score desc, kind, id), 同一 kind 只取 1 个; 渲染专用序列附在末尾。"""
     seed(conn, list(range(20)) + list(range(30, 50)))
     candidates = engine.run(conn, tz=TZ, year=YEAR)
 
     picked = engine.select(candidates, top=10)
+    ranked = [item for item in picked if item.kind not in engine.RENDER_ONLY_KINDS]
+    auxiliary = [item for item in picked if item.kind in engine.RENDER_ONLY_KINDS]
 
-    keys = [(-item.score, item.kind, item.id) for item in picked]
+    keys = [(-item.score, item.kind, item.id) for item in ranked]
     assert keys == sorted(keys)
-    assert len({item.kind for item in picked}) == len(picked)
+    assert len({item.kind for item in ranked}) == len(ranked)
+    assert [item.kind for item in auxiliary] == ["vol.daily_series"]
+    assert all(item.score == 0.0 for item in auxiliary)
+    assert picked[-len(auxiliary) :] == auxiliary
     with pytest.raises(ValueError, match="大于 0"):
         engine.select(candidates, top=0)
 

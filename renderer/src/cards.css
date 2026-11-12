@@ -1,0 +1,436 @@
+/* 阶段 6a 的四种卡片。尺寸全部绝对 px, 与 1080x1920 / 1080x1350 的舞台一致。
+ *
+ * 所有可能溢出的文本块都带 data-fit; 这里只管版式, 判定留给 6c 的真实布局测量。
+ * 中文断行复用 base.css 的 .copy (word-break: break-word + line-break: strict)。
+ *
+ * **给 6c 的一条实测结论:** `el.scrollHeight` 对文本并不等于行盒高度 —— 当
+ * line-height 小于字体的墨迹比 (Windows/YaHei 约 1.32em) 时, Chrome 把字形的墨迹
+ * 溢出也计入 scrollHeight。实测 72px/1.1 的 "137次": clientHeight 79、scrollHeight 87、
+ * Range 墨迹高 95。本文件的 display 字号普遍是 0.9–1.3 行距, 所以"scrollHeight <=
+ * clientHeight + 1"这条判据会对**每一个**正常文本块报溢出。横向的 scrollWidth 没有
+ * 这个问题; 纵向要用文本的 Range 墨迹盒对槽位的外框比, 或者给槽位一个显式高度。
+ */
+
+/* ---------- ranking ---------- */
+
+.ranking {
+  justify-content: center;
+}
+
+.ranking__kicker {
+  position: absolute;
+  top: var(--safe-top);
+  left: var(--margin);
+  margin: 0;
+  font-size: var(--fs-micro);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  color: var(--skin-faint);
+}
+
+.ranking__title {
+  margin: 0 0 56px;
+  font-size: 96px;
+  line-height: 1.06;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.ranking__sub {
+  margin: -32px 0 40px;
+  font-size: 40px;
+  line-height: 1.3;
+  color: var(--skin-muted);
+}
+
+.ranking__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.ranking__row {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  padding: 26px 0;
+  border-top: 1px solid var(--skin-rule);
+}
+
+.ranking__row:last-child {
+  border-bottom: 1px solid var(--skin-rule);
+}
+
+.ranking__index {
+  width: 64px;
+  flex: none;
+  font-size: 40px;
+  line-height: 1.2;
+  color: var(--skin-faint);
+}
+
+.ranking__label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 56px;
+  line-height: 1.24;
+  color: var(--skin-ink);
+}
+
+.ranking__value {
+  width: 220px;
+  flex: none;
+  text-align: right;
+  font-size: 72px;
+  line-height: 1.1;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.ranking__unit {
+  margin-left: 8px;
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--skin-muted);
+}
+
+/* ---------- heatmap ---------- */
+
+.heatmap {
+  justify-content: flex-start;
+}
+
+.heatmap__kicker {
+  margin: 0 0 24px;
+  font-size: var(--fs-micro);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  color: var(--skin-faint);
+}
+
+.heatmap__title {
+  margin: 0;
+  font-size: 96px;
+  line-height: 1.06;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.heatmap__sub {
+  margin: 20px 0 0;
+  font-size: 40px;
+  line-height: 1.3;
+  color: var(--skin-muted);
+}
+
+.heatmap__body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 36px;
+}
+
+/* 列数由年份决定: 53 列是常态, 闰年且 1 月 1 日为周日时 54 列。
+ * 54x16 + 53x1 = 917 <= 936, 仍然在左右各 72px 的安全区之内。 */
+.heatmap__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 16px);
+  grid-template-rows: repeat(7, 16px);
+  gap: 1px;
+}
+
+.heatmap__cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.heatmap__cell--empty {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.heatmap__cell--zero {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.heatmap__cell--l1 {
+  background: rgba(198, 255, 61, 0.22);
+}
+
+.heatmap__cell--l2 {
+  background: rgba(198, 255, 61, 0.4);
+}
+
+.heatmap__cell--l3 {
+  background: rgba(198, 255, 61, 0.68);
+}
+
+.heatmap__cell--l4 {
+  background: rgba(198, 255, 61, 1);
+}
+
+.heatmap__foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 24px;
+  line-height: 1.2;
+  color: var(--skin-faint);
+}
+
+.heatmap__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.heatmap__caveat {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--skin-muted);
+}
+
+/* ---------- clock ---------- */
+
+.clock {
+  align-items: center;
+  text-align: center;
+}
+
+.clock__kicker {
+  margin: 0 0 24px;
+  font-size: var(--fs-micro);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  color: var(--skin-faint);
+}
+
+.clock__title {
+  margin: 0;
+  font-size: 88px;
+  line-height: 1.08;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.clock__dial {
+  flex: 1 1 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clock__svg {
+  width: 900px;
+  height: 900px;
+}
+
+.clock__wedge {
+  fill: var(--skin-accent);
+}
+
+.clock__zero {
+  stroke: var(--skin-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.45;
+}
+
+.clock__ring {
+  fill: none;
+  stroke: var(--skin-accent);
+  stroke-width: 3;
+  opacity: 0.45;
+}
+
+.clock__peak {
+  font-size: 120px;
+  font-weight: 600;
+  fill: var(--skin-ink);
+  text-anchor: middle;
+}
+
+.clock__peak-label {
+  font-size: 30px;
+  letter-spacing: 0.16em;
+  fill: var(--skin-muted);
+  text-anchor: middle;
+}
+
+.clock__caption {
+  margin: 0 0 24px;
+  font-size: 36px;
+  line-height: 1.3;
+  color: var(--skin-muted);
+}
+
+/* ---------- summary-grid ---------- */
+
+.summary-grid {
+  justify-content: flex-start;
+}
+
+.summary-grid__kicker {
+  margin: 0 0 24px;
+  font-size: var(--fs-micro);
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  color: var(--skin-faint);
+}
+
+.summary-grid__title {
+  margin: 0;
+  font-size: 88px;
+  line-height: 1.06;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.summary-grid__grid {
+  flex: 1 1 auto;
+  margin-top: 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-content: start;
+}
+
+.summary-grid__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 24px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.summary-grid__cell--hero {
+  grid-column: 1 / -1;
+  padding: 32px 32px 28px;
+  background: rgba(198, 255, 61, 0.08);
+}
+
+.summary-grid__value {
+  font-size: 72px;
+  line-height: 1.04;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.summary-grid__cell--hero .summary-grid__value {
+  font-size: 150px;
+}
+
+.summary-grid__label {
+  font-size: 30px;
+  line-height: 1.3;
+  color: var(--skin-muted);
+}
+
+.summary-grid__cell--hero .summary-grid__label {
+  font-size: 38px;
+}
+
+/* ---------- 4:5 紧凑模式 ----------
+ *
+ * 舞台从 1920 降到 1350, 但安全区仍是上下各 240, 内容高度从 1440 变成 870。
+ * 这些覆盖只改字号与内外边距, 不改单元格/楔形几何; 组件里的估算仍按 9:16 的
+ * 尺寸做早失败, 所以只会偏保守, 不会漏报。
+ */
+
+.stage[data-aspect="4:5"] .ranking__title {
+  margin-bottom: 32px;
+  font-size: 80px;
+}
+
+.stage[data-aspect="4:5"] .ranking__sub {
+  margin: -16px 0 24px;
+  font-size: 34px;
+}
+
+.stage[data-aspect="4:5"] .ranking__row {
+  padding: 16px 0;
+}
+
+.stage[data-aspect="4:5"] .ranking__index {
+  font-size: 34px;
+}
+
+.stage[data-aspect="4:5"] .ranking__label {
+  font-size: 48px;
+}
+
+.stage[data-aspect="4:5"] .ranking__value {
+  font-size: 60px;
+}
+
+.stage[data-aspect="4:5"] .ranking__unit {
+  font-size: 30px;
+}
+
+.stage[data-aspect="4:5"] .heatmap__title {
+  font-size: 72px;
+}
+
+.stage[data-aspect="4:5"] .heatmap__sub {
+  font-size: 34px;
+}
+
+.stage[data-aspect="4:5"] .clock__title {
+  font-size: 72px;
+}
+
+.stage[data-aspect="4:5"] .clock__svg {
+  width: 620px;
+  height: 620px;
+}
+
+.stage[data-aspect="4:5"] .clock__caption {
+  margin-bottom: 12px;
+  font-size: 32px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__title {
+  font-size: 72px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__grid {
+  margin-top: 24px;
+  gap: 12px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell {
+  gap: 6px;
+  padding: 12px 18px;
+  border-radius: 14px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell--hero {
+  padding: 18px 24px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__value {
+  font-size: 52px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell--hero .summary-grid__value {
+  font-size: 96px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__label {
+  font-size: 24px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell--hero .summary-grid__label {
+  font-size: 30px;
+}

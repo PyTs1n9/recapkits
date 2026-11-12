@@ -4,11 +4,11 @@
  * transform 上。这样 PNG/MP4 阶段的截图与浏览器里看到的是同一套几何, 不需要为
  * 两个目标各调一遍。
  *
- * 字体确定性推迟到 PNG/MP4 阶段 (阶段 6/7)。HTML 阶段用系统字体栈, 因为:
+ * 字体确定性推迟到 PNG/MP4 阶段 (阶段 7)。HTML 阶段用系统字体栈, 因为:
  * 1) 在浏览器里 CJK 字体本来就由系统提供, 随包字体只会让文件变大;
  * 2) CJK 子集化是件正经工作 (需要按实际文案裁剪字形), 在还没有像素输出的阶段
  *    为它付费没有回报。
- * 阶段 6 引入随包 WOFF2 时, 只替换下面的 --font-sans 与其 @font-face, 布局不用动。
+ * 阶段 7 引入随包 WOFF2 时, 只替换下面的 --font-sans 与其 @font-face, 布局不用动。
  * 看到这里没有 @font-face 是**故意的**, 不是漏了。
  */
 
@@ -18,6 +18,10 @@
   --fs-display: 320px; --fs-h1: 220px; --fs-h2: 140px;
   --fs-lead: 88px; --fs-body: 56px; --fs-caption: 40px; --fs-micro: 28px;
   --track-tight: -0.025em;
+  /* 巨型数字的视觉底边补偿。line-height 0.9 是几何, 0.12em 是字体相关的修正:
+   * 行盒底落在安全区下沿时, CJK 字形仍会向下溢出。换字体后只重测这一个值,
+   * 由阶段 6c 的安全区断言验证, 不需要肉眼比对。 */
+  --display-baseline-shift: 0.12em;
   --dur-fast: 160ms; --dur-mid: 400ms; --dur-slow: 700ms;
   --ease-out: cubic-bezier(0.2, 0.7, 0.1, 1);
 

@@ -31,13 +31,13 @@
     },
     {
       "id": "c3",
-      "type": "big-number",
+      "type": "ranking",
+      "insight": "conc.top_entity:repo:alpha:2024",
       "copy": {
         "kicker": "年度执念",
         "headline": "提交集中度",
-        "sub": "都指向同一仓库 alpha"
-      },
-      "evidence": ["conc.top_entity:repo:alpha:2024"]
+        "sub": "{{conc.top_entity:repo:alpha:2024.share}} 的提交都指向 alpha"
+      }
     }
   ]
 }

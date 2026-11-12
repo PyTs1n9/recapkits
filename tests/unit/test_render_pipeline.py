@@ -6,7 +6,6 @@
 """
 
 import json
-import shutil
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -22,9 +21,10 @@ from recapkits.story.validate import build_refs, validate_story
 FIXTURES = Path(__file__).parent.parent / "fixtures"
 STORY = FIXTURES / "story-render.json"
 
+_NODE = node.node_info()
 needs_node = pytest.mark.skipif(
-    shutil.which("node") is None or not node.BUNDLE.is_file(),
-    reason="需要 node 与已构建的 renderer assets",
+    _NODE is None or _NODE.major < node.MIN_NODE_MAJOR or not node.BUNDLE.is_file(),
+    reason="需要 Node 22+ 与已构建的 renderer assets",
 )
 
 

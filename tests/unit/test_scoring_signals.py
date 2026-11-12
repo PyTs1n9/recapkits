@@ -19,6 +19,7 @@ YEAR = 2024
 FULL_KINDS = {
     "vol.total",
     "vol.busiest_day",
+    "vol.daily_series",
     "conc.top_entity",
     "time.hour_rhythm",
     "time.weekday_rhythm",

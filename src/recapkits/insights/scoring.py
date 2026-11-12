@@ -131,7 +131,7 @@ def gated_components(*, has_previous: bool) -> list[str]:
     """列出被闸门关闭的分量; 顺序固定, 便于快照与解释输出比对。
 
     本期 (阶段 5) 没有同比数据, 所以 deviation 与 discontinuity 一律关闭,
-    并在解释输出里说明"为什么是 0"。阶段 6 接入上一期后传 True 即可解除。
+    并在解释输出里说明"为什么是 0"。后续接入上一期后传 True 即可解除。
     """
     return [] if has_previous else ["deviation", "discontinuity"]
 

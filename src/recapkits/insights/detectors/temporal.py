@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from recapkits.insights import scoring
 from recapkits.insights.detectors.common import make_insight, scope, standard_caveats
-from recapkits.insights.model import Fact, Insight, Period
+from recapkits.insights.model import Fact, Insight, Period, Series
 
 LATE_NIGHT_HOURS = frozenset({22, 23, 0, 1, 2, 3})
 WEEKDAY_LABELS = ("周一", "周二", "周三", "周四", "周五", "周六", "周日")
@@ -64,6 +64,12 @@ def _hour_rhythm(
         )
     )
     facts.append(Fact("peak_hour", "最活跃小时", f"{peak_hour} 点", None, f"{peak_hour} 点"))
+    series = Series(
+        axis="hour",
+        keys=tuple(str(hour) for hour in range(24)),
+        values=tuple(count / total_events for count in counts),
+        unit="share",
+    )
 
     return [
         make_insight(
@@ -78,6 +84,7 @@ def _hour_rhythm(
             novelty="constant",
             signal=scoring.signal_hour_rhythm(late_share),
             caveats=standard_caveats(period, "本地小时由 tz.py 从 UTC 换算, 源带偏移时优先用偏移"),
+            series=series,
         )
     ]
 
@@ -110,6 +117,12 @@ def _weekday_rhythm(conn: sqlite3.Connection, source: str, period: Period) -> li
             f"{busiest_share:.0%}",
         )
     )
+    series = Series(
+        axis="weekday",
+        keys=tuple(str(index) for index in range(7)),
+        values=tuple(count / total for count in counts),
+        unit="share",
+    )
 
     return [
         make_insight(
@@ -130,6 +143,7 @@ def _weekday_rhythm(conn: sqlite3.Connection, source: str, period: Period) -> li
             novelty="constant",
             signal=scoring.signal_weekday_rhythm(busiest_share),
             caveats=standard_caveats(period, "星期由本地日期推出, 周一起算"),
+            series=series,
         )
     ]
 

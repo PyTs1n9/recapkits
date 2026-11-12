@@ -27,35 +27,63 @@
 
 ## 卡片类型与兼容
 
-| 类型 | 可承载的洞察 |
-|---|---|
-| `cover` | 任意（通常不引洞察） |
-| `big-number` | `vol.*`、`time.*` |
-| `ranking` | `conc.*` |
-| `heatmap` | `disc.*`、`time.weekday_rhythm` |
-| `clock` | `time.hour_rhythm` |
-| `summary-grid` | 任意，但至少要 3 条被引洞察 |
+| 类型 | 可承载的洞察 | 额外要求 |
+|---|---|---|
+| `cover` | 任意（通常不引洞察） | — |
+| `big-number` | `vol.*`、`time.*` | `evidence` 最多 2 条；数字由 `insight` 提供 |
+| `ranking` | `conc.*` | 洞察需带 `rank_*` 事实（最多 5 行） |
+| `heatmap` | `vol.daily_series` | 洞察必须带 `axis="day"` 的 `series` |
+| `clock` | `time.hour_rhythm` | 洞察必须带 `axis="hour"` 的 `series` |
+| `summary-grid` | 任意，但至少要 3 条被引洞察 | 最多取 9 个 fact |
 
-阶段 5b 只实现了 `cover` 与 `big-number`；其余四种遇到即报错，不会画个空屏。
+六个类型均已实现；缺少必要数据时校验器直接报错，不会画个空屏。
 
 ### `big-number` 的写法
 
-巨型数字**不写在文案里**，它由管线提供：优先取 `insight` 所指洞察的
-`headline_fact.display`，没有 `insight` 时退回首条 `evidence`。于是：
+巨型数字**不写在文案里**，它由管线提供：取 `insight` 所指洞察的
+`headline_fact.display`。`insight` 是数字的唯一来源；`evidence` 不再提供数字：
 
 ```json
-{ "id": "c3", "type": "big-number",
-  "copy": { "kicker": "年度执念", "headline": "提交集中度", "sub": "都指向同一仓库 alpha" },
-  "evidence": ["conc.top_entity:repo:alpha:2024"] }
+{ "id": "c3", "type": "big-number", "insight": "vol.total:git:2024",
+  "copy": { "kicker": "全年", "headline": "提交总数",
+            "sub": "覆盖 {{vol.total:git:2024.active_days}} 个活跃日" } }
 ```
 
 渲染结果是自下而上的四层：数字（320px）→ `headline`（140px）→ `sub`（56px）→ `kicker`。
 `headline` 只允许一行、`sub` 最多两行，超出**渲染器报错**而不是静默截断 ——
 被截断的文案会以"看起来对"的方式把错误数据发出去。
 
-之所以能借 `evidence` 上卡（而不是必须写 `insight`），是因为 `ranking` 还没实现，
-而集中度往往是整组里最值得看的数字。`insight` 为空时 V3 的类型兼容检查会跳过，
-这是故意留的过渡通道。
+`ranking` 上线前，`big-number` 曾允许借首条 `evidence` 的 `headline_fact` 当数字。
+这条通道已删除：一个语义两种表达方式，留着就一定会有人用错。现在
+`big-number` 携带 3 条及以上 `evidence` 会报 `TYPE_EVIDENCE_MISMATCH`。
+
+## `series`：供渲染的序列
+
+`clock` 需要 24 小时分布，`heatmap` 需要逐日强度。这些数据**不能塞进 `display` 字符串**
+（例如 `"0.01,0.02,..."`）：`display` 是标量文案，一旦承载序列，V1 的占位符校验就失去意义。
+
+`insights.json` 的每条洞察可以带一个可选 `series`：
+
+```json
+"series": {
+  "axis": "hour" | "weekday" | "day",
+  "keys": ["0", "1", "2", "..."],
+  "values": [0.011, 0.024, 0.031, "..."],
+  "unit": "share" | "count"
+}
+```
+
+约束：
+
+- `len(keys) == len(values)`，否则报错。
+- `axis="hour"` 时 `keys` 恰为 `"0".."23"`；`axis="weekday"` 时恰为 `"0".."6"`（0=周一）。
+- `axis="day"` 时 `keys` 为 `YYYY-MM-DD`，覆盖审查窗口的每一天（含零值），长度等于窗口天数。
+- `unit="share"` 时 `values` 之和为 1.0（容差 1e-6）。
+- 无序列的洞察不写这个键（不写 `null`）。
+
+`vol.daily_series` 是第 8 个检测器，专门产出 `axis="day"` 的逐日事件数；它的
+`signal` 固定 `0.0`，不参与排名，但会被 `select()` 无条件附在输出末尾，确保
+`heatmap` 引用它时一定能在 `insights.json` 里找到。
 
 ## 占位符
 
@@ -73,8 +101,8 @@
 |---|---|---|
 | V1 | 占位符必须解析到被引洞察的 fact | `PLACEHOLDER_MALFORMED` / `PLACEHOLDER_UNKNOWN_INSIGHT` / `PLACEHOLDER_NOT_REFERENCED` / `PLACEHOLDER_UNKNOWN_FACT` |
 | V2 | 数字不得手写（阿拉伯、全角、阿拉伯-印度、中文数词+量词、英文数词） | `NUMBER_NOT_IN_PLACEHOLDER` |
-| V3 | 卡片类型与洞察类型兼容 | `CARD_TYPE_MISMATCH` / `CARD_UNKNOWN_INSIGHT` / `SUMMARY_NEEDS_EVIDENCE` |
-| V4 | 槽位长度上限（v0 用估算度量） | `SLOT_TOO_LONG` |
+| V3 | 卡片类型与洞察类型兼容，且所需序列存在、轴正确 | `CARD_TYPE_MISMATCH` / `CARD_UNKNOWN_INSIGHT` / `SUMMARY_NEEDS_EVIDENCE` / `CARD_SERIES_MISSING` / `CARD_SERIES_AXIS_MISMATCH` / `TYPE_EVIDENCE_MISMATCH` |
+| V4 | 槽位长度上限（估算用于早失败；真实布局由设计断言判定） | `SLOT_TOO_LONG` |
 | V5 | 高敏洞察需用户授权，`story.json` 里的 `allow_sensitive` 一律忽略 | `SENSITIVE_REQUIRES_CONSENT` |
 | V6 | 专有名词必须来自被引洞察的事实或标签 | `NAME_NOT_IN_EVIDENCE` |
 | V7 | 禁止因果与诊断表述 | `FORBIDDEN_CAUSALITY` |
@@ -92,6 +120,9 @@ recap story --check story.json --allow-sensitive                # 用户显式�
 recap story --check story.json --allow-unknown-names            # 放行实体表外的名字
 recap story --check story.json --insights path/to/insights.json # 指定数据源
 
+recap insights --md                                            # 同时写 insights.json 与 insights.md
+recap insights --no-md                                         # 只写 JSON
+recap insights --payload-preview                               # 报出含/不含 series 的字节差
 recap render --format html --aspect 9:16                        # 出单文件 HTML
 recap preview                                                   # 本地预览, 改文件自动刷新
 ```
@@ -112,5 +143,9 @@ recap preview                                                   # 本地预览, 
 ## 长度预算
 
 画布宽 1080，左右各留 72，因此 `headline` 与 `sub` 的可用宽度是 936px，`kicker` 是 480px。
-v0 的估算把 CJK 记 1.0em、拉丁记 0.55em 再乘槽位字号；渲染器落地后替换
-`recapkits/story/measure.py` 里的 `default_measure` 即可，校验器不用改。
+校验器把 CJK 记 1.0em、拉丁记 0.55em 再乘槽位字号，这是**早失败**用的估算；
+渲染器组件用同一套启发式做卡片内检查。
+
+最终判据是阶段 6c 的真实布局测量：每个可能溢出的文本块都带 `data-fit="<槽位>"`，
+浏览器里断言 `scrollWidth <= clientWidth + 1` 且 `scrollHeight <= clientHeight + 1`。
+估算可以偏保守，但不能替代测量 —— 估算是为了早报错，测量才是"放不放得下"的答案。

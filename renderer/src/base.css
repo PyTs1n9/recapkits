@@ -73,7 +73,8 @@ body {
   padding: var(--safe-top) var(--margin) var(--safe-bottom);
 }
 
-.measure {
+/* 数字排版: 等宽数字 + 收紧字距。6c 的测量标记是 data-fit 属性, 不是这个类。 */
+.tnum {
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--track-tight);
 }
@@ -153,10 +154,9 @@ body {
 }
 
 .big-number__value {
-  /* line-height 0.9 + 0.12em 下移补偿: 行盒底落在安全区下沿时, CJK 字形仍会
-   * 向下溢出约 39px (实测 1080x1920)。这里把行盒上提 0.12em, 让字形的视觉底边
-   * 正好压在安全区下沿。字体确定性推迟到阶段 6, 届时随包字体落地后重测这一个值。 */
-  margin: 0 0 0.12em;
+  /* line-height 0.9 + 基线补偿: 行盒底落在安全区下沿时, CJK 字形仍会向下溢出。
+   * 补偿值是 token, 换字体只改 tokens.css 里的 --display-baseline-shift。 */
+  margin: 0 0 var(--display-baseline-shift);
   font-size: var(--fs-display);
   line-height: 0.9;
   font-weight: 700;

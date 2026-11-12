@@ -1,5 +1,6 @@
 import { renderToString } from "preact-render-to-string";
 import baseCss from "./base.css?raw";
+import cardsCss from "./cards.css?raw";
 import { RenderError } from "./errors";
 import { ASPECTS, Deck } from "./stage";
 import tokensCss from "./tokens.css?raw";
@@ -18,6 +19,8 @@ export function assertBaked(story: BakedStory): void {
       card.copy.sub,
       card.copy.kicker,
       card.number,
+      ...(card.rows ?? []).flatMap((row) => [row.label, row.value]),
+      ...(card.facts ?? []).flatMap((fact) => [fact.label, fact.value]),
     ];
     for (const value of values) {
       if (typeof value === "string" && (value.includes("{{") || value.includes("}}"))) {
@@ -59,7 +62,7 @@ export function renderStory(story: BakedStory, options: RenderOptions): string {
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
     `<title>${escapeText(title)}</title>`,
     scaleScript(size.width, size.height),
-    `<style>${tokensCss}\n${baseCss}</style>`,
+    `<style>${tokensCss}\n${baseCss}\n${cardsCss}</style>`,
     "</head>",
     "<body>",
     body,

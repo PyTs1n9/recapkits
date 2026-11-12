@@ -9,6 +9,7 @@ from pathlib import Path
 
 from recapkits.errors import RecapError
 from recapkits.render import preview
+from recapkits.render.node import require_node
 from recapkits.render.pipeline import build_html, load_input
 from recapkits.workspace import Workspace, load_workspace
 
@@ -35,6 +36,8 @@ def _default_out(story_path: Path, year: int) -> Path:
 
 def cmd_render(args: argparse.Namespace) -> int:
     """校验、烘焙、渲染, 写一个自包含的 HTML 文件。"""
+    # 先确认 node, 再读 story/insights: 缺 node 时用户不该先看到校验错误。
+    require_node()
     story_path = _story_path(args.story)
     source = load_input(
         story_path,
@@ -62,6 +65,7 @@ def cmd_render(args: argparse.Namespace) -> int:
 
 def cmd_preview(args: argparse.Namespace) -> int:
     """起一个只绑 127.0.0.1 的预览服务器; 改输入文件即自动刷新。"""
+    require_node()
     story_path = _story_path(args.story)
     state = preview.PreviewState(
         story_path=story_path,

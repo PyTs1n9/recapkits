@@ -48,12 +48,24 @@ export function BigNumber({ card }: { card: BakedCard }) {
 
   return (
     <div class="card big-number">
-      {card.copy.kicker ? <p class="copy big-number__kicker">{card.copy.kicker}</p> : null}
-      {sub ? <p class="copy big-number__sub">{sub}</p> : null}
-      {hasNumber && headline ? (
-        <p class="copy big-number__headline">{headline}</p>
+      {card.copy.kicker ? (
+        <p class="copy big-number__kicker" data-fit="kicker">
+          {card.copy.kicker}
+        </p>
       ) : null}
-      <p class="copy big-number__value measure">{hasNumber ? number : headline}</p>
+      {sub ? (
+        <p class="copy big-number__sub" data-fit="sub">
+          {sub}
+        </p>
+      ) : null}
+      {hasNumber && headline ? (
+        <p class="copy big-number__headline" data-fit="headline">
+          {headline}
+        </p>
+      ) : null}
+      <p class="copy big-number__value tnum" data-fit="number">
+        {hasNumber ? number : headline}
+      </p>
     </div>
   );
 }

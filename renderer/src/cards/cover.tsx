@@ -1,10 +1,11 @@
 import { RenderError } from "../errors";
-import { measure } from "../text-fit";
+import { countLines, measure } from "../text-fit";
 import type { BakedCard } from "../types";
 
 /** 内容区宽度: 1080 - 左右各 72, 与 tokens.css 的 --margin 保持一致。 */
 export const CONTENT_WIDTH = 1080 - 2 * 72;
 const YEAR_SIZE = 320;
+const SUB_SIZE = 88;
 
 /**
  * `cover`: 年份巨型字号占满上半屏, kicker 在安全区顶部, 无装饰图形。
@@ -21,12 +22,28 @@ export function Cover({ card }: { card: BakedCard }) {
         `超过 ${CONTENT_WIDTH}px; 缩短文案, 或换用 big-number`,
     );
   }
+  const sub = card.copy.sub ?? "";
+  if (sub && countLines(sub, CONTENT_WIDTH, SUB_SIZE) > 2) {
+    throw new RenderError(
+      `卡片 ${card.id} 的 cover.sub 在 ${SUB_SIZE}px 下超过 2 行; 缩短文案, 或挪进另一张卡`,
+    );
+  }
 
   return (
     <div class="card cover">
-      {card.copy.kicker ? <p class="copy cover__kicker">{card.copy.kicker}</p> : null}
-      <h1 class="copy cover__year measure">{year}</h1>
-      {card.copy.sub ? <p class="copy cover__sub">{card.copy.sub}</p> : null}
+      {card.copy.kicker ? (
+        <p class="copy cover__kicker" data-fit="kicker">
+          {card.copy.kicker}
+        </p>
+      ) : null}
+      <h1 class="copy cover__year tnum" data-fit="headline">
+        {year}
+      </h1>
+      {sub ? (
+        <p class="copy cover__sub" data-fit="sub">
+          {sub}
+        </p>
+      ) : null}
       <div class="cover__rule" aria-hidden="true" />
     </div>
   );

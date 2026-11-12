@@ -21,9 +21,9 @@ def _fact(fact: Fact) -> dict[str, object]:
 
 
 def _insight(insight: Insight) -> dict[str, object]:
-    """按契约的键序展开一条洞察。"""
+    """按契约的键序展开一条洞察; 没有 series 的洞察不写这个键。"""
     period = insight.period
-    return {
+    payload: dict[str, object] = {
         "id": insight.id,
         "kind": insight.kind,
         "source": insight.source,
@@ -35,16 +35,23 @@ def _insight(insight: Insight) -> dict[str, object]:
         },
         "headline_fact": _fact(insight.headline_fact),
         "facts": [_fact(fact) for fact in insight.facts],
-        "evidence_sql": insight.evidence_sql,
-        "evidence_rows": insight.evidence_rows,
-        "score": insight.score,
-        "score_parts": dict(insight.score_parts),
-        "novelty": insight.novelty,
-        "sensitivity": insight.sensitivity,
-        "data_sufficiency": insight.data_sufficiency,
-        "gated": list(insight.gated),
-        "caveats": list(insight.caveats),
     }
+    if insight.series is not None:
+        payload["series"] = insight.series.as_dict()
+    payload.update(
+        {
+            "evidence_sql": insight.evidence_sql,
+            "evidence_rows": insight.evidence_rows,
+            "score": insight.score,
+            "score_parts": dict(insight.score_parts),
+            "novelty": insight.novelty,
+            "sensitivity": insight.sensitivity,
+            "data_sufficiency": insight.data_sufficiency,
+            "gated": list(insight.gated),
+            "caveats": list(insight.caveats),
+        }
+    )
+    return payload
 
 
 def build_id(

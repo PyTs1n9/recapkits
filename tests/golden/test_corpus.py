@@ -45,6 +45,7 @@ EAST_EIGHT = timezone(timedelta(hours=8))
 FULL_KINDS = {
     "vol.total",
     "vol.busiest_day",
+    "vol.daily_series",
     "conc.top_entity",
     "time.hour_rhythm",
     "time.weekday_rhythm",
@@ -146,8 +147,8 @@ def payload_of(conn: sqlite3.Connection, top: int = 10) -> dict[str, object]:
     return render(selected, sources=["git"], event_count=count_events(conn), tz=TZ)
 
 
-def test_all_seven_kinds_appear(corpus: sqlite3.Connection) -> None:
-    """样本量够, 7 个 kind 一个不少。"""
+def test_all_eight_kinds_appear(corpus: sqlite3.Connection) -> None:
+    """样本量够, 8 个 kind 一个不少。"""
     found = engine.run(corpus, tz=TZ, year=YEAR)
 
     assert {insight.kind for insight in found} == FULL_KINDS

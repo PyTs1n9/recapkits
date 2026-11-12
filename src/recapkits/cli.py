@@ -1,25 +1,29 @@
 """命令行入口: 解析参数、调用子命令、把失败输出成一句人话。
 
-子命令实现在 commands.py, 这里只管参数与错误出口。
+子命令实现在 commands.py / doctor.py / run.py, 这里只管参数与错误出口。
+
+**两种入口:**
+- `recap <子命令> ...`: 分步命令, 给 agent 与调试用。
+- `recap <路径>`: 一条命令跑完导入 → 洞察 → 渲染; 第一个非选项参数不是已知
+  子命令时走这条路径。node 检查在该路径的处理器第一行, 早于任何数据解析。
 """
 
 import argparse
 import sys
 from collections.abc import Sequence
 
-from recapkits.commands import (
-    cmd_doctor,
-    cmd_import,
-    cmd_init,
-    cmd_insights,
-)
+from recapkits.commands import cmd_import, cmd_init, cmd_insights
+from recapkits.doctor import cmd_doctor
 from recapkits.errors import RecapError
 from recapkits.render.cli import cmd_preview, cmd_render
+from recapkits.run import cmd_run
 from recapkits.story.cli import cmd_story
+
+SUBCOMMANDS = frozenset({"init", "import", "insights", "doctor", "story", "render", "preview"})
 
 
 def build_parser() -> argparse.ArgumentParser:
-    """recap init / import / insights / doctor。"""
+    """recap init / import / insights / doctor / story / render / preview。"""
     parser = argparse.ArgumentParser(prog="recap", description="本地优先的年度回顾引擎")
     parser.add_argument("--debug", action="store_true", help="失败时打印 traceback")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -40,6 +44,17 @@ def build_parser() -> argparse.ArgumentParser:
     insights.add_argument("--json", action="store_true", help="输出完整 insights.json")
     insights.add_argument("--top", type=int, default=10, help="最多选几张卡, 默认 10")
     insights.add_argument("--explain", action="store_true", help="逐项打印 score_parts")
+    insights.add_argument(
+        "--md",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="写 insights.md, 默认开; --no-md 关闭",
+    )
+    insights.add_argument(
+        "--payload-preview",
+        action="store_true",
+        help="只报发出去的字节数 (含/不含 series), 不打印内容",
+    )
     insights.set_defaults(handler=cmd_insights)
 
     doctor = sub.add_parser("doctor", help="诊断环境与工作区")
@@ -83,9 +98,37 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def build_run_parser() -> argparse.ArgumentParser:
+    """`recap <路径>`: 无子命令的一条命令路径。"""
+    parser = argparse.ArgumentParser(
+        prog="recap",
+        description="一条命令: 导入 → 洞察 → 渲染 (需要 Node 22+)",
+    )
+    parser.add_argument("--debug", action="store_true", help="失败时打印 traceback")
+    parser.add_argument("path", help="导出目录, 或包含多个仓库的目录")
+    parser.add_argument("--tz", default="Asia/Shanghai", help="IANA 时区名, 默认 Asia/Shanghai")
+    parser.add_argument("--year", type=int, help="回顾年份, 默认当前 UTC 年")
+    parser.add_argument("--top", type=int, default=10, help="最多选几张卡, 默认 10")
+    parser.set_defaults(handler=cmd_run)
+    return parser
+
+
+def _is_run_path(argv: Sequence[str]) -> bool:
+    """第一个非选项参数不是已知子命令时, 按 `recap <路径>` 解释。"""
+    for token in argv:
+        if token == "--debug":
+            continue
+        if token.startswith("-"):
+            return False
+        return token not in SUBCOMMANDS
+    return False
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """命令行入口; 返回进程退出码。"""
-    args = build_parser().parse_args(argv)
+    raw = list(sys.argv[1:] if argv is None else argv)
+    parser = build_run_parser() if _is_run_path(raw) else build_parser()
+    args = parser.parse_args(raw)
     try:
         return int(args.handler(args))
     except RecapError as exc:
