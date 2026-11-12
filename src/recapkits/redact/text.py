@@ -104,7 +104,7 @@ def replace_entities(text: str, replacements: dict[str, str]) -> str:
     """按长度降序替换; ASCII 名字要整词匹配, 中文名没有词边界可用。"""
     for name in sorted(replacements, key=len, reverse=True):
         target = replacements[name]
-        if not name or target == name:
+        if not name.strip() or target == name:
             continue
         if name.isascii():
             pattern = re.compile(
