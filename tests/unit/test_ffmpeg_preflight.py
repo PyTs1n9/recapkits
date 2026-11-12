@@ -62,6 +62,20 @@ def test_html_render_does_not_require_ffmpeg(tmp_path: Path, monkeypatch) -> Non
     assert main(["render", "--format", "html"]) == 1
 
 
+def test_mp4_out_must_be_a_file(tmp_path: Path, monkeypatch, capsys) -> None:
+    """`--out` 给成目录语义时立刻报错, 不该先探测 node / ffmpeg。"""
+    monkeypatch.chdir(tmp_path)
+
+    def explode() -> None:
+        raise AssertionError("参数检查不该探测 node")
+
+    monkeypatch.setattr(node, "node_info", explode)
+
+    assert main(["render", "--format", "mp4", "--out", "out/cards"]) == 1
+
+    assert "--out 是输出文件" in capsys.readouterr().err
+
+
 def test_doctor_prints_ffmpeg_path_and_version(tmp_path: Path, monkeypatch, capsys) -> None:
     """doctor 不能只报"可用": 路径与版本都要有。"""
     monkeypatch.chdir(tmp_path)

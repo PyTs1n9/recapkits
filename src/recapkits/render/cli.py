@@ -58,6 +58,9 @@ def _default_mp4_path(story_path: Path, year: int, aspect: str) -> Path:
 
 def cmd_render(args: argparse.Namespace) -> int:
     """校验、烘焙、渲染; html 写单文件, png 逐卡写一组图, mp4 写一条视频。"""
+    # 纯参数检查放最前: 一个写错的后缀不该先等 node / ffmpeg 探测。
+    if args.format == "mp4" and args.out and Path(args.out).suffix.lower() != ".mp4":
+        raise RecapError("--format mp4 的 --out 是输出文件, 需要以 .mp4 结尾")
     # 先确认 node, 再读 story/insights: 缺 node 时用户不该先看到校验错误。
     require_node()
     # mp4 的 ffmpeg 检查同样要早于读取输入: 缺工具时不该先解析三分钟数据。
@@ -111,8 +114,6 @@ def _render_png(args: argparse.Namespace, html: str, *, story_path: Path, year: 
 
 def _render_mp4(args: argparse.Namespace, html: str, *, story_path: Path, year: int) -> int:
     """编码 MP4; `--out` 在这条路径上是文件, 与 png 的目录语义相反。"""
-    if args.out and Path(args.out).suffix.lower() != ".mp4":
-        raise RecapError("--format mp4 的 --out 是输出文件, 需要以 .mp4 结尾")
     out = (
         Path(args.out).expanduser()
         if args.out
