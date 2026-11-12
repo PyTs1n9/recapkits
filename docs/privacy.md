@@ -85,8 +85,9 @@ init -> import spotify -> insights -> story --auto -> render --format html
   tcpdump 需要 root 与平台特定工具，本阶段不做。真正的「零外联」判据仍是源码扫描
   （`test_core_has_no_outbound_addresses`）与「产物里没有 URL」
   （`test_render_produces_self_contained_html`）。
-- Windows 与 macOS 没有 `unshare`，本地跑这条会显示 1 skipped，这是预期。CI 的
-  `egress-gate` 用 `-rs` 守住「不得跳过」：没有证据就是失败，不是跳过。
+- Windows 与 macOS 没有 `unshare`，Linux 上也可能被 AppArmor / 内核策略挡住：这些
+  环境里本测试会跳过，本地预期 1 skipped。CI 的 `egress-gate` 先放开 Ubuntu 的
+  AppArmor 限制，再用 `-rs` 把任何 skip 判成失败：证据缺了就是失败，不是跳过。
 
 ## 6. 已知缺口
 
