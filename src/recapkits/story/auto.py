@@ -9,13 +9,17 @@
 3. **高敏洞察不进自动规划。** 授权是用户的决定, 不是规划器的。
 4. **跳过必须带理由。** 「跳过」两个字没有信息量; 理由要说清是闸门关闭、数据不足,
    还是 `--top` 截断。
+5. **多源只讲一个源。** 主源按已选洞察的多数票定; 其余源的卡进跳过表并写明原因 ——
+   把 git 的日序列和 spotify 的总时长拼进同一份故事, 读者无从解释。
 """
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
 from recapkits.errors import RecapError
+from recapkits.insights.engine import RENDER_ONLY_KINDS
 from recapkits.story import templates
 from recapkits.story.refs import build_refs
 from recapkits.story.schema import InsightRef
@@ -27,6 +31,7 @@ NO_DAILY = "没有 vol.daily_series：工作区没有事件，或数据不足时
 NO_HOUR = "没有 time.hour_rhythm：活跃日不足 30 天时被闸门关闭"  # noqa: RUF001
 SENSITIVE = "需要 --allow-sensitive"
 SUMMARY_SHORT = "可引洞察不足 3 条：--top 太小，或数据源太少"  # noqa: RUF001
+MIXED = "本回顾以 {primary} 为主源，{others} 的洞察未入卡"  # noqa: RUF001
 
 
 @dataclass(frozen=True)
@@ -68,6 +73,44 @@ def _first(grouped: dict[str, list[InsightRef]], kind: str) -> InsightRef | None
     return items[0] if items else None
 
 
+def _primary_source(refs: dict[str, InsightRef]) -> str | None:
+    """已选洞察里出现次数最多的源; 平局比该源的最小 id, 再比源名。
+
+    渲染专用序列 (`vol.daily_series`) 不参与计票: 每个源都有一条, 计进去等于
+    给每个源加一票。空 `source` 也不投票 —— 手写 payload 可能没有这个键,
+    这时不做任何过滤, 保持旧行为。
+    """
+    votes = Counter(
+        ref.source for ref in refs.values() if ref.source and ref.kind not in RENDER_ONLY_KINDS
+    )
+    if not votes:
+        return None
+    smallest = {
+        source: min(ref.id for ref in refs.values() if ref.source == source) for source in votes
+    }
+    return min(votes, key=lambda source: (-votes[source], smallest[source], source))
+
+
+def _split_sources(
+    refs: dict[str, InsightRef], primary: str | None
+) -> tuple[dict[str, InsightRef], dict[str, InsightRef]]:
+    """按主源拆成「可入卡」与「被排除」; 无 source 的条目始终保留。"""
+    if primary is None:
+        return refs, {}
+    kept = {ident: ref for ident, ref in refs.items() if ref.source in ("", primary)}
+    dropped = {ident: ref for ident, ref in refs.items() if ref.source and ref.source != primary}
+    return kept, dropped
+
+
+def _mixed_reason(primary: str, dropped: dict[str, InsightRef], card: str) -> str | None:
+    """这张卡需要的洞察只存在于别的源时, 说清主源与未入卡的源。"""
+    wanted = templates.CARD_SOURCE[card]
+    others = sorted({ref.source for ref in dropped.values() if ref.kind == wanted})
+    if not others:
+        return None
+    return MIXED.format(primary=primary, others="/".join(others))
+
+
 def _pick_daily(items: list[InsightRef]) -> InsightRef | None:
     """多条日序列取 headline 值最大者, 同值按 id 升序。
 
@@ -98,9 +141,9 @@ def _meta(payload: dict[str, Any], *, year: int, theme: str, tone: str, locale: 
     }
 
 
-def _card(kind: str, ref: InsightRef, year: int) -> dict[str, Any]:
+def _card(kind: str, ref: InsightRef, year: int, source: str | None) -> dict[str, Any]:
     """把模板落成一张卡的 JSON; cover 用 evidence 承载数字来源, 其余用 insight。"""
-    template = templates.copy(kind, {ref.kind: ref}, year)
+    template = templates.copy(kind, {ref.kind: ref}, year, source=source)
     copy: dict[str, str] = {
         "kicker": template.kicker,
         "headline": template.headline,
@@ -157,9 +200,15 @@ def plan(
     tone: str = "deadpan",
     locale: str = "zh-CN",
 ) -> Plan:
-    """按固定顺序规划卡片; 不可得的卡进跳过表, 不静默消失。"""
+    """按固定顺序规划卡片; 不可得的卡进跳过表, 不静默消失。
+
+    多源时先定主源, 只引用主源的洞察: 不同量纲混进一份故事而不说明, 是产品级
+    错误。主源判不出来 (没有 source 键) 时退回旧行为。
+    """
     refs = build_refs(payload)
-    grouped = _group(refs)
+    primary = _primary_source(refs)
+    kept, dropped = _split_sources(refs, primary)
+    grouped = _group(kept)
     total = _first(grouped, "vol.total")
     if total is None:
         raise RecapError("没有可用的洞察：先跑 recap import，再跑 recap insights")  # noqa: RUF001
@@ -186,13 +235,14 @@ def plan(
             continue
         ref = sources[kind]
         if ref is None:
-            skips.append(Skip(kind, reasons[kind]))
+            mixed = _mixed_reason(primary, dropped, kind) if primary is not None else None
+            skips.append(Skip(kind, mixed or reasons[kind]))
             continue
         if ref.sensitivity == "high":
             # 自动生成的文案不该替用户做授权决定。
             skips.append(Skip(kind, SENSITIVE))
             continue
-        built[kind] = _card(kind, ref, year)
+        built[kind] = _card(kind, ref, year, primary)
 
     # summary 放在最后: 它只引用前面真的画出来的卡, 所以必须先知道哪些卡成立了。
     evidence = _summary_evidence(built)

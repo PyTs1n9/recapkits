@@ -33,12 +33,27 @@ class Template:
     sub: str | None = None
 
 
-def copy(kind: str, refs: dict[str, InsightRef], year: int) -> Template:
+#: ranking 的标题按主源换词。git 是既定文案, 一个字节都不能变;
+#: 其余源只换这一句, 其余模板与卡片顺序保持共用。
+RANKING_HEADLINE = {
+    "git": "出现最多的项目",
+    "spotify": "听得最多的艺人",
+    "netflix": "看得最多的剧集",
+}
+DEFAULT_RANKING_HEADLINE = RANKING_HEADLINE["git"]
+
+
+def copy(
+    kind: str, refs: dict[str, InsightRef], year: int, *, source: str | None = None
+) -> Template:
     """按卡型产出模板。
 
     `refs` 以 **洞察 kind** 为键, 不是洞察 id: 自动规划每张卡只认一类洞察,
     用 kind 做键可以让调用方不必记住一长串 id。`vol.daily_series` 若有多条,
     调用方已经按 headline 值选过一条。
+
+    `source` 只在多源时由调用方传入; 它目前只影响 ranking 的标题, 未知源回落到
+    git 的文案, 保证手写 payload (没有 source 键) 的故事不变。
     """
     if kind == "cover":
         total = refs["vol.total"]
@@ -64,7 +79,7 @@ def copy(kind: str, refs: dict[str, InsightRef], year: int) -> Template:
             "ranking",
             "ranking",
             "集中度",
-            "出现最多的项目",
+            RANKING_HEADLINE.get(source or "git", DEFAULT_RANKING_HEADLINE),
             f"首位占全部记录的 {ph(conc, 'share')}",
         )
     if kind == "heatmap":

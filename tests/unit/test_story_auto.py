@@ -81,18 +81,26 @@ def ref(kind: str) -> InsightRef:
     return InsightRef(f"{kind}:git:2024", kind, "low", {}, [])
 
 
-def test_templates_have_no_handwritten_numbers_or_latin() -> None:
-    """模板去掉占位符与年份后只能是 CJK: 一条测试同时守住 V2 与 V6。"""
+@pytest.mark.parametrize("source", [None, "git", "spotify", "netflix"])
+def test_templates_have_no_handwritten_numbers_or_latin(source: str | None) -> None:
+    """模板去掉占位符与年份后只能是 CJK: 一条测试同时守住 V2 与 V6。
+
+    四个 source 变体都遍历: 多源只换 ranking 的标题, 换出来的词同样不能带数字或拉丁字。
+    """
     refs = {kind: ref(kind) for kind in (*templates.CARD_SOURCE.values(), "vol.daily_series")}
     for kind in templates.CARD_ORDER:
-        template = templates.copy(kind, refs, 2024)
+        template = templates.copy(kind, refs, 2024, source=source)
         for slot in ("kicker", "headline", "sub"):
             text = getattr(template, slot)
             if text is None:
                 continue
             plain = YEAR.sub("", PLACEHOLDER.sub("", text))
-            assert not any(char.isascii() and char.isalnum() for char in plain), (kind, slot, text)
-            assert check_numbers(0, slot, text) == [], (kind, slot, text)
+            assert not any(char.isascii() and char.isalnum() for char in plain), (
+                source,
+                kind,
+                slot,
+            )
+            assert check_numbers(0, slot, text) == [], (source, kind, slot, text)
 
 
 def test_high_sensitivity_is_skipped_not_auto_authorized() -> None:
@@ -220,8 +228,10 @@ def test_validation_failure_does_not_write(tmp_path: Path, monkeypatch, capsys) 
     init_workspace(tmp_path, golden())
     real = templates.copy
 
-    def overflowing(kind: str, refs: dict, year: int) -> templates.Template:
-        template = real(kind, refs, year)
+    def overflowing(
+        kind: str, refs: dict, year: int, *, source: str | None = None
+    ) -> templates.Template:
+        template = real(kind, refs, year, source=source)
         return templates.Template(
             template.card_id,
             template.card_type,

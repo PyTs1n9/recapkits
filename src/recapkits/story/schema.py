@@ -61,6 +61,9 @@ class InsightRef:
 
     `fact_list` 保留事实的完整结构与顺序, `facts` 只保留 key -> display 的映射,
     供占位符校验使用; 两者来自同一份输入, 不允许各算一套。
+
+    `source` 来自 insights.json 的同名键, 多源时用来定主源。手写 payload 可能没有
+    这个键, 因此默认空串 —— 空源不参与投票, 也不被主源过滤掉。
     """
 
     id: str
@@ -71,6 +74,7 @@ class InsightRef:
     headline: str = ""
     fact_list: tuple[RefFact, ...] = ()
     series: Series | None = None
+    source: str = ""
 
     @property
     def headline_value(self) -> float:

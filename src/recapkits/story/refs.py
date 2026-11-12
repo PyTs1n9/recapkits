@@ -75,5 +75,6 @@ def build_refs(payload: dict[str, Any]) -> dict[str, InsightRef]:
             headline=str(headline_raw.get("display", "")),
             fact_list=fact_list,
             series=_series(item.get("series"), insight_id, item.get("period")),
+            source=str(item.get("source", "")),
         )
     return refs
