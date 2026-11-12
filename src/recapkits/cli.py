@@ -110,6 +110,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     render.add_argument("--insights", metavar="PATH", help="insights.json 路径")
     render.add_argument(
+        "--restore",
+        metavar="PATH",
+        help="还原表 (agent/restore.json): 先把假名 story 还原成真名, 再校验、烘焙",
+    )
+    render.add_argument(
         "--out",
         metavar="PATH",
         help="html / mp4 为输出文件, png 为输出目录; 默认写到 .recapkits/out/",
@@ -125,6 +130,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--story", metavar="PATH", help="story.json 路径, 默认 .recapkits/story.json"
     )
     preview.add_argument("--insights", metavar="PATH", help="insights.json 路径")
+    preview.add_argument(
+        "--restore",
+        metavar="PATH",
+        help="还原表 (agent/restore.json): 先把假名 story 还原成真名, 再校验、渲染",
+    )
     preview.add_argument("--port", type=int, default=0, help="端口, 默认由系统分配")
     preview.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
     preview.add_argument(

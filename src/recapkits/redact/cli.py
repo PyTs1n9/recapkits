@@ -14,12 +14,10 @@ from recapkits.errors import RecapError
 from recapkits.redact import report as audit_report
 from recapkits.redact.apply import redact_pair, write_pair
 from recapkits.redact.pseudonym import Book, PseudonymError, load, new_salt, save
-from recapkits.redact.text import read_words
+from recapkits.redact.text import SUPPRESSION_FILE, read_words
 from recapkits.render.cli import cmd_render
 from recapkits.story.load import load_json
 from recapkits.workspace import load_workspace
-
-SUPPRESSION_FILE = "redact.txt"
 
 
 @dataclass(frozen=True)
@@ -77,6 +75,7 @@ def _render(args: argparse.Namespace, paths: Paths, year: int) -> int:
     common = {
         "story": str(paths.out / "story.json"),
         "insights": str(paths.out / "insights.json"),
+        "restore": None,
         "aspect": "9:16",
         "fps": 30,
         "allow_sensitive": bool(args.allow_sensitive),

@@ -6,12 +6,11 @@
 import argparse
 import json
 import sys
-from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from recapkits.adapters.base import Adapter, FileLedger, IngestReport
+from recapkits.adapters.base import Adapter
 from recapkits.adapters.git_local import GitAdapter
 from recapkits.adapters.netflix import NetflixAdapter
 from recapkits.adapters.spotify import SpotifyAdapter
@@ -25,8 +24,12 @@ from recapkits.db import (
 from recapkits.emit import render, write
 from recapkits.errors import RecapError
 from recapkits.insights import engine, markdown
-from recapkits.insights.model import Insight
-from recapkits.payload import measure, minimize
+from recapkits.payload import minimize
+from recapkits.redact.placeholder import build as build_placeholder
+from recapkits.redact.pseudonym import save as save_book
+from recapkits.redact.restore import save as save_restore
+from recapkits.redact.text import SUPPRESSION_FILE, read_words
+from recapkits.reports import print_insights, print_payload_preview, print_report
 from recapkits.tz import rebuild_local, utc_now_iso
 from recapkits.workspace import WORKSPACE, Workspace, ensure_gitignore, load_workspace
 
@@ -77,78 +80,6 @@ def _pick_adapter(path: Path, source: str) -> Adapter:
             f"{path} 同时像 {best_name} 与 {ranked[1][1]}, 置信度太接近: 用 --source 指定"
         )
     return ADAPTERS[best_name]
-
-
-def _ledger_line(ledger: FileLedger) -> str:
-    """一行文件账: 文件名、解析数、跳过数与原因明细。"""
-    if ledger.problem:
-        return f"{ledger.name}  整份跳过 ({ledger.problem})"
-    detail = ", ".join(
-        f"{reason} {count}" for reason, count in sorted(ledger.reasons.items()) if count
-    )
-    tail = f" ({detail})" if detail else ""
-    return f"{ledger.name}  解析 {ledger.rows:,} · 跳过 {ledger.skipped:,}{tail}"
-
-
-def _print_report(report: IngestReport, added: int, start: str, end: str) -> None:
-    """打印导入报告: 只有计数与时间, 没有任何数据内容。"""
-    unit = report.unit
-    print(f"源        {report.source}")
-    print(f"扫描      {report.units} 个{unit}")
-    print(f"解析      {report.rows:,} 条")
-    print(f"新增      {added:,} 条")
-    print(f"跳过      {report.skipped:,} 条")
-    if report.first_ts and report.last_ts:
-        print(f"时间范围  {report.first_ts} 至 {report.last_ts}")
-    print(f"覆盖率    {(report.coverage or 0.0):.1%} (窗口 {start} 至 {end})")
-    for note in report.notes:
-        print(f"说明      {note}")
-    for warning in report.warnings[:5]:
-        print(f"警告      {warning}")
-    if len(report.warnings) > 5:
-        print(f"警告      另有 {len(report.warnings) - 5} 条省略")
-    if report.files:
-        print(f"逐文件    {len(report.files)} 个")
-        for ledger in report.files:
-            print(f"          {_ledger_line(ledger)}")
-
-
-def _print_insights(
-    insights: Sequence[Insight], stats: dict[str, tuple[int, int]], *, explain: bool
-) -> None:
-    """人类可读输出: 一行一个分数加一句事实; --explain 再补分项与充足度。"""
-    ranked = [item for item in insights if item.kind not in engine.RENDER_ONLY_KINDS]
-    auxiliary = [item for item in insights if item.kind in engine.RENDER_ONLY_KINDS]
-    for rank, insight in enumerate(ranked, start=1):
-        head = insight.headline_fact
-        print(f"{rank:>2}. {insight.score:+.3f}  {insight.kind:<22} {head.label} {head.display}")
-        if not explain:
-            continue
-        parts = "  ".join(
-            f"{name} {value:+.2f}" + ("(闸门)" if name in insight.gated else "")
-            for name, value in insight.score_parts.items()
-        )
-        print(f"    {parts}")
-        events, active_days = stats.get(insight.source, (0, 0))
-        print(f"    数据充足度: {insight.data_sufficiency} ({events} 事件 / {active_days} 活跃日)")
-    if auxiliary:
-        kinds = ", ".join(item.kind for item in auxiliary)
-        print(f"    (另有 {len(auxiliary)} 条渲染专用序列: {kinds}; 不参与排名)")
-
-
-def _print_payload_preview(payload: dict[str, object]) -> None:
-    """外发清单: 三行, 只有计数与字段名, 不打内容。
-
-    `--json` 时由调用方改打最小版, 这里不做分支 —— 一份函数一种输出。
-    """
-    measurement = measure(payload)
-    share = measurement.saved_share
-    sign = "-" if share > 0 else ""
-    tail = f"（{sign}{share:.0%}）"  # noqa: RUF001
-    print(f"payload      {measurement.full_bytes:,} 字节 · {measurement.count} 条洞察")
-    print(f"agent        {measurement.agent_bytes:,} 字节 · {measurement.count} 条洞察{tail}")
-    detail = " · ".join(f"{key} {size:,}" for key, size in measurement.dropped) or "无"
-    print(f"删除         {detail}")
 
 
 def cmd_init(args: argparse.Namespace) -> int:
@@ -226,7 +157,7 @@ def cmd_import(args: argparse.Namespace) -> int:
             coverage=report.coverage,
             created_at=utc_now_iso(),
         )
-        _print_report(report, count_events(conn) - before, start, end)
+        print_report(report, count_events(conn) - before, start, end)
     finally:
         conn.close()
     return 0
@@ -238,8 +169,6 @@ def cmd_insights(args: argparse.Namespace) -> int:
     entities = getattr(args, "entities", "name")
     if workspace.local_only and (args.payload_preview or entities != "name"):
         raise RecapError("本地模式不生成外发载荷: 先 recap init --no-local-only")
-    if entities != "name":
-        raise RecapError("--entities=placeholder 需要 agent/restore.json, 下一阶段启用")
     if not workspace.db_path.is_file():
         raise RecapError("还没有数据库: 先运行 recap import <目录>")
 
@@ -263,11 +192,18 @@ def cmd_insights(args: argparse.Namespace) -> int:
             tz=workspace.tz,
         )
         out_path = write(workspace.out_path, payload)
-        agent_path = (
-            None
-            if workspace.local_only
-            else write(workspace.agent_insights_path, minimize(payload))
-        )
+        agent_path = None
+        restore_path = None
+        if not workspace.local_only:
+            if entities == "placeholder":
+                built, book = build_placeholder(
+                    payload, root=workspace.root, words=read_words(Path.cwd() / SUPPRESSION_FILE)
+                )
+                save_book(workspace.root / "redactions.json", book)
+                agent_path = write(workspace.agent_insights_path, built.insights)
+                restore_path = save_restore(workspace.restore_path, built.restore)
+            else:
+                agent_path = write(workspace.agent_insights_path, minimize(payload))
         md_path = workspace.out_path.with_name("insights.md")
         if args.md:
             md_path.parent.mkdir(parents=True, exist_ok=True)
@@ -287,11 +223,11 @@ def cmd_insights(args: argparse.Namespace) -> int:
             if args.json:
                 print(json.dumps(minimize(payload), ensure_ascii=False, indent=2))
                 return 0
-            _print_payload_preview(payload)
+            print_payload_preview(payload)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return 0
-        _print_insights(selected, stats, explain=args.explain)
+        print_insights(selected, stats, explain=args.explain)
         suffix = f" + {len(auxiliary)} 条渲染专用" if auxiliary else ""
         print(f"\n候选 {len(candidates)} 条, 选出 {len(ranked)} 条{suffix}")
         print(f"已写入 {out_path}")
@@ -299,7 +235,9 @@ def cmd_insights(args: argparse.Namespace) -> int:
             print(f"已写入 {md_path}")
         if agent_path is not None:
             print(f"已写入 {agent_path}")
-        elif workspace.agent_dir.is_dir():
+        if restore_path is not None:
+            print(f"已写入 {restore_path}")
+        if agent_path is None and workspace.agent_dir.is_dir():
             print(f"本地模式: {workspace.agent_dir} 已存在, 未改写")
         if not ranked:
             print("没有达到样本门槛的洞察: 换更长窗口, 或再导入一个源", file=sys.stderr)

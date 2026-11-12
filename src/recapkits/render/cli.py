@@ -56,6 +56,24 @@ def _default_mp4_path(story_path: Path, year: int, aspect: str) -> Path:
     return root / "out" / name
 
 
+def _restore_path(explicit: str | None) -> Path | None:
+    return Path(explicit).expanduser() if explicit else None
+
+
+def _insights_for_restore(explicit: str | None, restore: str | None) -> str | None:
+    """`--restore` 时, 故事同目录那份是假名的; 默认回到工作区的真 insights。
+
+    还原后的 story 用真 id, 拿假名 insights 去校验只会得到一片
+    `CARD_UNKNOWN_INSIGHT`。显式 `--insights` 永远优先。
+    """
+    if explicit or not restore:
+        return explicit
+    workspace = load_workspace()
+    if workspace is not None and workspace.out_path.is_file():
+        return str(workspace.out_path)
+    return None
+
+
 def cmd_render(args: argparse.Namespace) -> int:
     """校验、烘焙、渲染; html 写单文件, png 逐卡写一组图, mp4 写一条视频。"""
     # 纯参数检查放最前: 一个写错的后缀不该先等 node / ffmpeg 探测。
@@ -69,7 +87,8 @@ def cmd_render(args: argparse.Namespace) -> int:
     story_path = _story_path(args.story)
     source = load_input(
         story_path,
-        args.insights,
+        _insights_for_restore(args.insights, args.restore),
+        restore=_restore_path(args.restore),
         allow_sensitive=bool(args.allow_sensitive),
         allow_unknown_names=bool(args.allow_unknown_names),
     )
@@ -139,7 +158,8 @@ def cmd_preview(args: argparse.Namespace) -> int:
     story_path = _story_path(args.story)
     state = preview.PreviewState(
         story_path=story_path,
-        insights_path=args.insights,
+        insights_path=_insights_for_restore(args.insights, args.restore),
+        restore=_restore_path(args.restore),
         aspect=args.aspect,
         allow_sensitive=bool(args.allow_sensitive),
         allow_unknown_names=bool(args.allow_unknown_names),

@@ -15,27 +15,52 @@ insights 里解析", 否则用户拿到的是一份看似脱敏、渲染时才�
 import json
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from recapkits.errors import RecapError
+from recapkits.redact.checks import check_resolvable
 from recapkits.redact.entities import collect_entities, rewrite_insights
 from recapkits.redact.pseudonym import Book
 from recapkits.redact.text import REMOVED, Audit, Suppressor, replace_entities, scrub
 from recapkits.story.rules import PLACEHOLDER
-from recapkits.story.schema import Story, StorySchemaError
-from recapkits.story.validate import build_refs
 
 
 @dataclass
 class Redaction:
-    """两份脱敏产物与它们的账。"""
+    """两份脱敏产物与它们的账。
+
+    `suppressed_ids` 是"不能进还原表"的旧 id: 顺着 id 还原会把用户点名要消失的
+    实体带回画面, 而红act 的承诺是它停在终态。
+    """
 
     insights: dict[str, Any]
     story: dict[str, Any]
     audit: Audit
     id_map: dict[str, str]
+    suppressed_ids: set[str] = field(default_factory=set)
+
+
+@dataclass
+class InsightRedaction:
+    """只脱敏 insights 的结果。
+
+    `suppressor` 与 `audit` 是跨两次调用共享的状态: `redact_pair` 要在同一份命中
+    计数上继续写 story, 否则报告里的抑制次数会少掉故事那一半。
+    """
+
+    insights: dict[str, Any]
+    audit: Audit
+    id_map: dict[str, str]
+    replacements: dict[str, str]
+    names: dict[str, str]
+    suppressed_ids: set[str]
+    suppressor: Suppressor
+
+    @property
+    def pii_hits(self) -> int:
+        """本次命中的结构化 PII 条数; 0 表示载荷里没有邮箱/路径/令牌。"""
+        return sum(self.audit.pii_counts.values())
 
 
 def _rewrite_copy(
@@ -105,46 +130,18 @@ def rewrite_story(
                 )
 
 
-def check_resolvable(insights: dict[str, Any], story: dict[str, Any]) -> None:
-    """写盘前的一致性闸门: id 唯一, 且故事的每个占位符都能解析。"""
-    try:
-        refs = build_refs(insights)
-        parsed = Story.from_dict(story)
-    except StorySchemaError as exc:
-        raise RecapError(f"脱敏产物没有通过结构校验: {exc}") from exc
+def redact_insights(payload: dict[str, Any], *, book: Book, words: list[str]) -> InsightRedaction:
+    """原地脱敏一份 insights; 不动 story, 也不需要 story 存在。
 
-    ids = [
-        str(item.get("id", "")) for item in insights.get("insights", []) if isinstance(item, dict)
-    ]
-    duplicated = sorted({ident for ident in ids if ids.count(ident) > 1})
-    if duplicated:
-        # 两个实体都被抑制表整体移除时会撞到这个; 静默合并会让一条洞察凭空消失。
-        raise RecapError(f"脱敏后出现重复的洞察 id: {', '.join(duplicated)}")
+    拆出来是为了 agent 载荷: 那条路径只有 insights, 没有故事 —— 要求先写一份
+    story 才能去名, 等于把"先有答案再有题目"当流程。
 
-    for index, card in enumerate(parsed.cards, start=1):
-        allowed = [card.insight] if card.insight else []
-        allowed += card.evidence
-        for ident in allowed:
-            if ident not in refs:
-                raise RecapError(f"脱敏后卡#{index}引用了不存在的洞察 {ident}")
-        for slot, text in card.copy.items():
-            for match in PLACEHOLDER.finditer(text):
-                insight_id, dot, fact_key = match.group(1).rpartition(".")
-                if not dot or insight_id not in refs:
-                    raise RecapError(f"脱敏后卡#{index}的 {slot} 占位符无法解析: {match.group(0)}")
-                if insight_id not in allowed:
-                    raise RecapError(f"脱敏后卡#{index}的 {slot} 引用了未列出的洞察 {insight_id}")
-                if fact_key not in refs[insight_id].facts:
-                    raise RecapError(f"脱敏后 {insight_id} 没有事实 {fact_key}")
-
-
-def redact_pair(
-    insights: dict[str, Any], story: dict[str, Any], *, book: Book, words: list[str]
-) -> Redaction:
-    """原地脱敏两份结构; 返回结果与审计。"""
+    `names` 只装本次出现的实体, 且不含被抑制词: 抑制掉的词是终态, 还原表里
+    出现它, 就等于承诺了一个我们不会兑现的还原。
+    """
     audit = Audit()
     suppressor = Suppressor(words)
-    kinds = collect_entities(insights)
+    kinds = collect_entities(payload)
     removed: list[str] = []
     for name in kinds:
         words_hit = suppressor.matches(name)
@@ -163,19 +160,47 @@ def redact_pair(
     audit.removed = removed
     audit.pseudonyms = len(kinds) - len(removed)
 
-    id_map = rewrite_insights(
-        insights, suppressor=suppressor, audit=audit, replacements=replacements
-    )
-    rewrite_story(
-        story,
-        id_map=id_map,
-        replacements=replacements,
-        suppressor=suppressor,
-        audit=audit,
+    id_map, suppressed_ids = rewrite_insights(
+        payload, suppressor=suppressor, audit=audit, replacements=replacements
     )
     audit.suppressed = dict(suppressor.hits)
+    names = {replacements[name]: name for name in kinds if name not in dropped}
+    return InsightRedaction(
+        insights=payload,
+        audit=audit,
+        id_map=id_map,
+        replacements=replacements,
+        names=names,
+        suppressed_ids=suppressed_ids,
+        suppressor=suppressor,
+    )
+
+
+def redact_pair(
+    insights: dict[str, Any], story: dict[str, Any], *, book: Book, words: list[str]
+) -> Redaction:
+    """原地脱敏两份结构; 返回结果与审计。
+
+    顺序即保证: 先 insights (PII -> 抑制表 -> 假名), 再拿同一套映射写 story。
+    反过来会让故事里的占位符指向一个还不存在的 id。
+    """
+    result = redact_insights(insights, book=book, words=words)
+    rewrite_story(
+        story,
+        id_map=result.id_map,
+        replacements=result.replacements,
+        suppressor=result.suppressor,
+        audit=result.audit,
+    )
+    result.audit.suppressed = dict(result.suppressor.hits)
     check_resolvable(insights, story)
-    return Redaction(insights=insights, story=story, audit=audit, id_map=id_map)
+    return Redaction(
+        insights=insights,
+        story=story,
+        audit=result.audit,
+        id_map=result.id_map,
+        suppressed_ids=result.suppressed_ids,
+    )
 
 
 def write_pair(out_dir: Path, insights: dict[str, Any], story: dict[str, Any]) -> tuple[Path, Path]:

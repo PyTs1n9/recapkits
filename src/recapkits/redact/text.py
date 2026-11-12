@@ -12,6 +12,9 @@ from recapkits.redact import pii
 
 REMOVED = pii.REMOVED
 
+#: 抑制表的文件名; redact 与 agent 载荷读的是同一份。
+SUPPRESSION_FILE = "redact.txt"
+
 
 @dataclass
 class Audit:

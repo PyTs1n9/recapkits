@@ -103,9 +103,14 @@ def rewrite_insights(
     suppressor: Suppressor,
     audit: Audit,
     replacements: dict[str, str],
-) -> dict[str, str]:
-    """清洗文本、重写实体标题与 id; 返回 旧 id -> 新 id。"""
+) -> tuple[dict[str, str], set[str]]:
+    """清洗文本、重写实体标题与 id。
+
+    返回 (旧 id -> 新 id, 被抑制表整体移除的旧 id)。第二个返回值不是审计信息:
+    那些 id 不能进还原表, 否则 render 会顺着 id 把用户点名要消失的实体带回来。
+    """
     id_map: dict[str, str] = {}
+    suppressed: set[str] = set()
     plans: list[tuple[dict[str, Any], tuple[str, str, str] | None, list[tuple[Any, str]]]] = []
     items = payload.get("insights")
     for item in items if isinstance(items, list) else []:
@@ -120,15 +125,19 @@ def rewrite_insights(
         for fact, original in labels:
             fact["label"] = replacements.get(original, fact["label"])
         top = labels[0][1] if labels else unquote(parts[1])
+        old_id = str(item.get("id", ""))
         new_top = replacements.get(top)
-        if new_top is None and suppressor.hits_on(top):
+        if new_top == REMOVED:
+            # 抑制表在 `redact_insights` 里已经记录过命中, 这里只标记 id 不可还原。
+            suppressed.add(old_id)
+        elif new_top is None and suppressor.hits_on(top):
             new_top = REMOVED
             suppressor.record(suppressor.matches(top))
+            suppressed.add(old_id)
         if new_top is None:
             new_top = top
-        old_id = str(item.get("id", ""))
         new_id = f"conc.top_entity:{parts[0]}:{_escape_entity(new_top)}:{parts[2]}"
         if new_id != old_id:
             id_map[old_id] = new_id
             item["id"] = new_id
-    return id_map
+    return id_map, suppressed

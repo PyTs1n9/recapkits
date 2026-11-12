@@ -60,9 +60,11 @@ class PreviewState:
         aspect: str,
         allow_sensitive: bool,
         allow_unknown_names: bool,
+        restore: Path | None = None,
     ) -> None:
         self.story_path = story_path
         self.insights_path = insights_path
+        self.restore = restore
         self.aspect = aspect
         self.allow_sensitive = allow_sensitive
         self.allow_unknown_names = allow_unknown_names
@@ -73,6 +75,8 @@ class PreviewState:
         paths = [self.story_path]
         if self.insights_path:
             paths.append(Path(self.insights_path))
+        if self.restore is not None:
+            paths.append(self.restore)
         return paths
 
     def token(self) -> str:
@@ -95,6 +99,7 @@ class PreviewState:
                 html = render_document(
                     self.story_path,
                     self.insights_path,
+                    restore=self.restore,
                     aspect=self.aspect,
                     allow_sensitive=self.allow_sensitive,
                     allow_unknown_names=self.allow_unknown_names,

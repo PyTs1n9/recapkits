@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from recapkits.errors import RecapError
+from recapkits.redact import restore as restore_table
 from recapkits.render import node
 from recapkits.story.bake import bake
 from recapkits.story.load import load_json, resolve_insights_path
@@ -37,12 +38,20 @@ def load_input(
     story_path: Path,
     insights_path: str | None = None,
     *,
+    restore: Path | None = None,
     allow_sensitive: bool = False,
     allow_unknown_names: bool = False,
 ) -> RenderInput:
-    """load + validate; 任何一处不通过都抛 `RecapError`, 不带病往下走。"""
+    """load + (可选还原) + validate; 任何一处不通过都抛 `RecapError`, 不带病往下走。
+
+    还原必须发生在这里, 不能等到渲染: 渲染层拿到的是烘焙后的字符串, 哪一段是
+    假名已经丢了; PNG / MP4 又共用同一条截图链路, 漏一层就是原名泄漏到画面里。
+    """
+    payload = load_json(story_path, "story.json")
+    if restore is not None:
+        payload = restore_table.apply(payload, restore_table.load(restore))
     try:
-        story = Story.from_dict(load_json(story_path, "story.json"))
+        story = Story.from_dict(payload)
     except StorySchemaError as exc:
         raise RecapError(f"story.json 结构不合法: {exc}") from exc
 
@@ -68,6 +77,7 @@ def render_document(
     story_path: Path,
     insights_path: str | None = None,
     *,
+    restore: Path | None = None,
     aspect: str = "9:16",
     allow_sensitive: bool = False,
     allow_unknown_names: bool = False,
@@ -76,6 +86,7 @@ def render_document(
     source = load_input(
         story_path,
         insights_path,
+        restore=restore,
         allow_sensitive=allow_sensitive,
         allow_unknown_names=allow_unknown_names,
     )
