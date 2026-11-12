@@ -126,11 +126,14 @@ export function Heatmap({ card, year }: { card: BakedCard; year: number }) {
             ))}
           </div>
           <div class="heatmap__foot">
-            <span>少</span>
-            <span class="heatmap__swatch heatmap__cell--zero" />
-            <span class="heatmap__swatch heatmap__cell--l2" />
-            <span class="heatmap__swatch heatmap__cell--l4" />
-            <span>多</span>
+            <span>逐日事件数</span>
+            <span class="heatmap__scale">
+              <span>少</span>
+              <span class="heatmap__swatch heatmap__cell--zero" />
+              <span class="heatmap__swatch heatmap__cell--l2" />
+              <span class="heatmap__swatch heatmap__cell--l4" />
+              <span>多</span>
+            </span>
           </div>
         </div>
         {emptyYear ? (

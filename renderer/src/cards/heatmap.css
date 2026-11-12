@@ -70,16 +70,24 @@
   background: rgba(198, 255, 61, 1);
 }
 
-/* 图例贴着面板右下角, 不抢格阵的视线。 */
+/* 图例是面板的脚注: 一条细线把它和格阵分开, 两端对齐, 读起来像图表的图例而不是
+ * 挤在角落的注释。 */
 .heatmap__foot {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 12px;
-  padding: 0 4px 2px;
-  font-size: 24px;
+  padding: 18px 4px 2px;
+  border-top: 1px solid var(--skin-hairline);
+  font-size: 26px;
   line-height: 1.2;
   color: var(--skin-faint);
+}
+
+.heatmap__scale {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .heatmap__swatch {
@@ -104,7 +112,8 @@
 }
 
 .stage[data-aspect="4:5"] .heatmap__foot {
-  font-size: 20px;
+  padding-top: 12px;
+  font-size: 22px;
 }
 
 .stage[data-aspect="4:5"] .heatmap__caveat {
