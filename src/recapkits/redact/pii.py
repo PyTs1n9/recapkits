@@ -30,6 +30,12 @@ _IBAN = re.compile(r"(?<![A-Za-z0-9])[A-Z]{2}\d{2}[A-Z0-9]{10,30}(?![A-Za-z0-9])
 _PHONE_INTL = re.compile(r"(?<![\d+])\+\d{1,3}(?:[\s.-]?\(?\d{1,4}\)?){2,4}(?!\d)")
 _PHONE_LOCAL = re.compile(r"(?<![0-9A-Za-z-])\d{3,4}(?:[ -]\d{3,4}){2}(?![0-9A-Za-z-])")
 
+#: 绝对路径会带出用户名 (`C:\Users\alice`, `/home/alice`) 或机器的目录结构。
+#: 只认三种高信号形态: 盘符、`~` 家目录、POSIX 的 home/Users。
+_PATH = re.compile(
+    r"(?<![A-Za-z0-9])(?:[A-Za-z]:[\\/]|~[\\/]|/(?:home|Users)/)[^\s\"'<>|,;\uff0c\u3002]*"
+)
+
 #: URL 末尾常见标点不属于地址; 不裁掉的话替换标记会吃掉后面的句号。
 _TRAILING = ".,;:!?)]}'\"\u3002\uff0c\uff1b\uff1a\uff01\uff1f\u300d\u300f\u3011"
 
@@ -147,16 +153,26 @@ def _handle(text: str) -> Iterator[tuple[int, int]]:
     yield from (match.span() for match in _HANDLE.finditer(text))
 
 
+def _path(text: str) -> Iterator[tuple[int, int]]:
+    for match in _PATH.finditer(text):
+        start, end = match.span()
+        while end > start and text[end - 1] in _TRAILING:
+            end -= 1
+        if end - start > 3:
+            yield start, end
+
+
 #: 先长后短不重要, 重叠由 `scan` 统一裁决; 这里的顺序只在长度相同时决定胜负。
 _RULES: tuple[tuple[str, int, Callable[[str], Iterator[tuple[int, int]]]], ...] = (
     ("URL", 0, _url),
     ("邮箱", 1, _email),
     ("IBAN", 2, _iban),
     ("卡号", 3, _card),
-    ("IP", 4, _ip),
-    ("坐标", 5, _coord),
-    ("电话", 6, _phone),
-    ("@handle", 7, _handle),
+    ("路径", 4, _path),
+    ("IP", 5, _ip),
+    ("坐标", 6, _coord),
+    ("电话", 7, _phone),
+    ("@handle", 8, _handle),
 )
 
 

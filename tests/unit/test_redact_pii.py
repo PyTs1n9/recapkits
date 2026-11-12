@@ -25,6 +25,9 @@ def categories(text: str) -> list[str]:
         ("卡号 4111 1111 1111 1111 过期", "卡号"),
         ("卡号 4111111111111111 过期", "卡号"),
         ("IBAN GB82WEST12345698765432 收款", "IBAN"),
+        ("源文件 C:\\Users\\alice\\recap\\story.json", "路径"),
+        ("源文件 ~/Downloads/export.json", "路径"),
+        ("源文件 /home/alice/recap.db", "路径"),
     ],
 )
 def test_each_rule_has_a_positive(text: str, category: str) -> None:
@@ -47,6 +50,9 @@ def test_each_rule_has_a_positive(text: str, category: str) -> None:
         "IBAN GB82WEST12345698765431 收款",
         # 纬度越界
         "坐标 999.123, 12.345 附近",
+        # 盘符后面没有分隔符, 是选项而不是路径
+        "选项 C: 继续",
+        "比例 a/b",
     ],
 )
 def test_lookalikes_are_not_redacted(text: str) -> None:

@@ -16,7 +16,7 @@ from recapkits.redact.pseudonym import DEFAULT_PREFIX, KIND_PREFIX
 from recapkits.redact.text import Audit
 
 #: 固定顺序, 让两次运行的报告可以逐行对比。
-PII_ORDER = ("URL", "邮箱", "IBAN", "卡号", "IP", "坐标", "电话", "@handle")
+PII_ORDER = ("URL", "邮箱", "IBAN", "卡号", "路径", "IP", "坐标", "电话", "@handle")
 SAMPLES = 5
 
 KIND_LABEL = {**KIND_PREFIX, "entity": DEFAULT_PREFIX}
