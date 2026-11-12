@@ -138,7 +138,7 @@ export function Heatmap({ card, year }: { card: BakedCard; year: number }) {
         </div>
         {emptyYear ? (
           <p class="copy heatmap__caveat" data-fit="caveat">
-            审查窗口内没有事件; 空格外形表示"未发生", 不代表零值。
+            审查窗口内没有事件；空格外形表示「尚未发生」，不代表零值。
           </p>
         ) : null}
       </div>

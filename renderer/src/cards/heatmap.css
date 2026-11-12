@@ -99,6 +99,8 @@
 }
 
 .heatmap__caveat {
+  /* balance: 这段只有两行, 默认断行会留下 "零值。" 这样的孤字。 */
+  text-wrap: balance;
   max-width: 760px;
   margin: 26px auto 0;
   font-size: 32px;

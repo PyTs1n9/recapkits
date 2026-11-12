@@ -175,7 +175,7 @@ export function Clock({ card }: { card: BakedCard }) {
         ) : null}
         {empty ? (
           <p class="copy clock__caption" data-fit="caveat">
-            窗口内没有可用的时间分布; 细环表示全零, 不是均匀分布。
+            窗口内没有可用的时间分布；细环表示全零，不是均匀分布。
           </p>
         ) : null}
       </div>
