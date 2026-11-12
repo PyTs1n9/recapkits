@@ -58,15 +58,18 @@ jobs:
         with:
           enable-cache: true
 
-      - run: uv sync
+      # PNG 测试需要可选依赖与一个浏览器; 装了自带 chromium, 这样"本机没有
+      # chrome/msedge"也不会让下面那条"不得跳过"的断言变红。
+      - run: uv sync --extra png
+      - run: uv run playwright install --with-deps chromium
 
       - name: render-tests-must-not-skip
         run: |
           set -euo pipefail
-          uv run pytest -q tests/unit/test_render_pipeline.py tests/unit/test_render_cards.py -rs \
-            | tee render-tests.log
+          uv run pytest -q tests/unit/test_render_pipeline.py tests/unit/test_render_cards.py \
+            tests/unit/test_render_png.py -rs | tee render-tests.log
           if grep -q "skipped" render-tests.log; then
-            echo "render 测试被跳过: node 或 renderer assets 缺失" >&2
+            echo "render 测试被跳过: node / renderer assets / 浏览器 缺失" >&2
             exit 1
           fi
 

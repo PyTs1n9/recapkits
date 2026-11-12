@@ -69,6 +69,34 @@ Preact 已打进 bundle）。Python 不拼 HTML 字符串。
 "全绿"。`node-gate` job 用一条独立断言（`command -v node` + 主版本 ≥ 22 + 测试输出
 不含 `skipped`）把这种假绿挡住。
 
+## 决定四：PNG 用真实浏览器截同一个页面
+
+`recap render --format png` 不重画，它把 `build_html()` 的产物落到临时文件，用 Playwright
+打开、逐张 `.stage` 截图。**版式仍然只有一份实现**：截的就是用户能打开的那个 HTML。
+
+**浏览器选择：** 先试本机 `chrome`，再试 `msedge`（Playwright 的 `channel` 参数），
+都没有才回落到 Playwright 自带的 chromium，并明确提示这一步多占约 150 MB。理由是
+开发者机器上普遍已有 Chrome/Edge，为一个截图动作再装一份浏览器没有意义。
+
+**像素必须可预测，三件事缺一不可：**
+
+1. 视口固定为舞台尺寸（`1080×1920` / `1080×1350`），`deviceScaleFactor: 1`；
+2. 强制 `--stage-scale: 1`：页面里的 `fit()` 会按窗口把舞台再缩一次，缩放比例随窗口
+   变化，像素就对不上设计稿了；截图后还会断言 PNG 的 IHDR 宽高，不符即报错；
+3. 等三件事再按快门：`document.fonts.ready`、两帧 `requestAnimationFrame`、页面上的
+   `data-render-ready` 标记。标记由产物里的第二个 `<script>` 在两帧之后写上，位置在
+   `<head>`，不参与内容渲染。等一个 sleep 是碰运气，等标记是等事实。
+
+**元数据：** 截图会带 `tEXt` / `zTXt` 块（源路径、软件版本），产物不该泄露本机路径。
+写盘前重编码，剥掉这三类文本块并保留其余块 —— 保留的块逐字节拷贝，CRC 不用重算。
+
+**命名与清理：** `recap-<年份>-01.png` 起，序号补零，文件名的字典序等于卡片顺序。
+写之前先删同目录的 `recap-*.png`：卡片变少时残留的旧图会让"文件数"撒谎。
+
+**可选依赖：** Playwright 在 `[project.optional-dependencies].png` 里，核心依赖仍是零
+第三方包。只出 HTML 的用户不该为 40 MB 的包付安装成本；缺它时报一句"uv sync --extra png"，
+而不是 ImportError。
+
 ## 资产同步
 
 `renderer/dist/` 是构建产物（不入库），`src/recapkits/render/assets/` 入库，两者

@@ -47,6 +47,25 @@ function scaleScript(width: number, height: number): string {
   return `<script>(function(){var W=${width},H=${height};function fit(){var s=Math.min(window.innerWidth/W,window.innerHeight/H);document.documentElement.style.setProperty("--stage-scale",String(s));}fit();window.addEventListener("resize",fit);})();</script>`;
 }
 
+/**
+ * 就绪标记。PNG 截图必须在字体与首帧布局都稳定之后, 否则会拍到回退字体或半成品。
+ * 两帧 rAF 之后再打标记: 第一帧完成布局, 第二帧确认绘制没有触发新的回流。
+ * 截图侧等 `html[data-render-ready="1"]`, 而不是猜一个 sleep。
+ *
+ * 写成多行, 且不让两个 `}` 相邻: 产物的测试会断言全文没有 `}}` (那是占位符残留的
+ * 形状), 压缩成一行的脚本很容易撞上这条断言。
+ */
+function readyScript(): string {
+  return [
+    "<script>(function () {",
+    'function mark() { document.documentElement.setAttribute("data-render-ready", "1"); }',
+    "function tick() { requestAnimationFrame(function () { requestAnimationFrame(mark); }); }",
+    'if (document.readyState === "complete") { tick(); }',
+    'else { window.addEventListener("load", tick, { once: true }); }',
+    " } )();</script>",
+  ].join("");
+}
+
 /** 把已烘焙的故事渲染成一份自包含的 HTML 文档 (无外部请求, 无内容 JS)。 */
 export function renderStory(story: BakedStory, options: RenderOptions): string {
   assertBaked(story);
@@ -62,6 +81,7 @@ export function renderStory(story: BakedStory, options: RenderOptions): string {
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
     `<title>${escapeText(title)}</title>`,
     scaleScript(size.width, size.height),
+    readyScript(),
     `<style>${tokensCss}\n${baseCss}\n${cardsCss}</style>`,
     "</head>",
     "<body>",

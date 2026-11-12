@@ -124,6 +124,7 @@ recap insights --md                                            # 同时写 insig
 recap insights --no-md                                         # 只写 JSON
 recap insights --payload-preview                               # 报出含/不含 series 的字节差
 recap render --format html --aspect 9:16                        # 出单文件 HTML
+recap render --format png --aspect 4:5                          # 逐卡 PNG 到 out/cards/
 recap preview                                                   # 本地预览, 改文件自动刷新
 ```
 

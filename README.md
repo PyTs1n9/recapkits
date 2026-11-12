@@ -7,6 +7,9 @@
 - **Python 3.11+** 与 **uv**：`uvx` 会自行管理 Python，本机只需装 uv。
 - **出 HTML / PNG / MP4 另需 Node 22+**。只算数据、只看 `insights.md`、只校验
   `story.json` 时不需要 Node。
+- **出 PNG 另需可选依赖 Playwright 与一个本机浏览器**：`uv sync --extra png`，
+  截图会优先用已装的 Chrome / Edge，都没有才回落到 Playwright 自带的 chromium
+  （约 150 MB）。只出 HTML 时不需要它。
 
 `recap doctor` 会打印实际生效的 node 绝对路径与版本。找不到或版本低于 22 时，
 `recap <路径>` 与 `recap render` 会在读取任何导出数据之前立即停止，不会让你等完
@@ -30,6 +33,17 @@ uvx recapkits render --format html --aspect 9:16
 ```bash
 uvx recapkits preview          # 只绑 127.0.0.1，端口随机，按 Ctrl+C 停止
 ```
+
+出图（每张卡一张 PNG，便于逐张发布）：
+
+```bash
+uv sync --extra png
+uvx recapkits render --format png --aspect 9:16   # 也支持 4:5
+```
+
+图写到 `.recapkits/out/cards/recap-<年份>-01.png` …，序号补零，文件名的字典序就是
+卡片顺序。截图用真实浏览器渲染同一个页面：视口与舞台同宽、缩放固定为 1，并在
+字体就绪、两帧绘制之后才按快门。同目录里上一轮的 `recap-*.png` 会先被清掉。
 
 ## 改渲染器
 

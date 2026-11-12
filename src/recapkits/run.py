@@ -59,6 +59,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             story=None,
             insights=None,
             out=None,
+            format="html",
             aspect="9:16",
             allow_sensitive=False,
             allow_unknown_names=False,

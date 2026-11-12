@@ -8,6 +8,11 @@ dependencies = ["tzdata; sys_platform == 'win32'"]
 [project.scripts]
 recap = "recapkits.cli:main"
 
+[project.optional-dependencies]
+png = [
+    "playwright>=1.44",
+]
+
 [dependency-groups]
 dev = ["ruff", "pyright", "pytest", "hypothesis"]
 

@@ -67,9 +67,12 @@ def build_parser() -> argparse.ArgumentParser:
     story.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")
     story.set_defaults(handler=cmd_story)
 
-    render = sub.add_parser("render", help="渲染单文件 HTML")
+    render = sub.add_parser("render", help="渲染单文件 HTML 或逐卡 PNG")
     render.add_argument(
-        "--format", default="html", choices=["html"], help="输出格式, 目前只有 html"
+        "--format",
+        default="html",
+        choices=["html", "png"],
+        help="输出格式: html 写单文件, png 逐卡一组图 (需要可选依赖 playwright)",
     )
     render.add_argument("--aspect", default="9:16", choices=["9:16", "4:5"], help="画布比例")
     render.add_argument(
@@ -77,7 +80,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     render.add_argument("--insights", metavar="PATH", help="insights.json 路径")
     render.add_argument(
-        "--out", metavar="PATH", help="输出路径, 默认 .recapkits/out/recap-<年份>.html"
+        "--out",
+        metavar="PATH",
+        help="html 为输出文件, 默认 .recapkits/out/recap-<年份>.html; png 为输出目录",
     )
     render.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
     render.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")

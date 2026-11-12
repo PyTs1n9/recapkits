@@ -774,6 +774,16 @@ function assertBaked(story) {
 function scaleScript(width, height) {
   return `<script>(function(){var W=${width},H=${height};function fit(){var s=Math.min(window.innerWidth/W,window.innerHeight/H);document.documentElement.style.setProperty("--stage-scale",String(s));}fit();window.addEventListener("resize",fit);})();<\/script>`;
 }
+function readyScript() {
+  return [
+    "<script>(function () {",
+    'function mark() { document.documentElement.setAttribute("data-render-ready", "1"); }',
+    "function tick() { requestAnimationFrame(function () { requestAnimationFrame(mark); }); }",
+    'if (document.readyState === "complete") { tick(); }',
+    'else { window.addEventListener("load", tick, { once: true }); }',
+    " } )();<\/script>"
+  ].join("");
+}
 function renderStory(story, options) {
   assertBaked(story);
   const size = ASPECTS[options.aspect];
@@ -787,6 +797,7 @@ function renderStory(story, options) {
     '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
     `<title>${escapeText(title)}</title>`,
     scaleScript(size.width, size.height),
+    readyScript(),
     `<style>${tokensCss}
 ${baseCss}
 ${cardsCss}</style>`,

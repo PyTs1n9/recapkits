@@ -11,6 +11,7 @@ from recapkits.errors import RecapError
 from recapkits.render import preview
 from recapkits.render.node import require_node
 from recapkits.render.pipeline import build_html, load_input
+from recapkits.render.png import render_pngs
 from recapkits.workspace import Workspace, load_workspace
 
 
@@ -34,8 +35,15 @@ def _default_out(story_path: Path, year: int) -> Path:
     return directory / f"recap-{year}.html"
 
 
+def _default_cards_dir(story_path: Path) -> Path:
+    """PNG 的默认目录: `.recapkits/out/cards/`; 没有工作区就放在故事旁边。"""
+    workspace: Workspace | None = load_workspace()
+    root = workspace.root if workspace is not None else story_path.parent
+    return root / "out" / "cards"
+
+
 def cmd_render(args: argparse.Namespace) -> int:
-    """校验、烘焙、渲染, 写一个自包含的 HTML 文件。"""
+    """校验、烘焙、渲染; html 写单文件, png 逐卡写一组图。"""
     # 先确认 node, 再读 story/insights: 缺 node 时用户不该先看到校验错误。
     require_node()
     story_path = _story_path(args.story)
@@ -46,6 +54,10 @@ def cmd_render(args: argparse.Namespace) -> int:
         allow_unknown_names=bool(args.allow_unknown_names),
     )
     html = build_html(source, aspect=args.aspect)
+    year = source.story.meta.year
+
+    if args.format == "png":
+        return _render_png(args, html, story_path=story_path, year=year)
 
     out = (
         Path(args.out).expanduser()
@@ -60,6 +72,19 @@ def cmd_render(args: argparse.Namespace) -> int:
     size = len(html.encode("utf-8"))
     print(f"已写入 {out.resolve()}")
     print(f"  {len(source.story.cards)} 张卡, {args.aspect}, {size:,} 字节, 无外部请求")
+    return 0
+
+
+def _render_png(args: argparse.Namespace, html: str, *, story_path: Path, year: int) -> int:
+    """逐卡截图; `--out` 在这条路径上指的是目录, 不是文件。"""
+    if args.out and Path(args.out).suffix.lower() == ".png":
+        raise RecapError("--format png 的 --out 是输出目录, 不是文件名")
+    out_dir = Path(args.out).expanduser() if args.out else _default_cards_dir(story_path)
+    report = render_pngs(html, aspect=args.aspect, out_dir=out_dir, year=year)
+    if report.channel is None:
+        print("未找到本机 chrome / msedge, 已回落到 Playwright 自带的 chromium (约 150 MB)")
+    print(f"已写入 {len(report.paths)} 张 PNG, 共 {report.total_bytes:,} 字节")
+    print(f"  {out_dir.resolve()}  ({args.aspect})")
     return 0
 
 
