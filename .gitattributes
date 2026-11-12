@@ -4,3 +4,8 @@
 # 这两个目录在所有平台都用 LF, 与 style.ts 里的 normalize 互为双保险。
 renderer/src/** text eol=lf
 src/recapkits/render/assets/** text eol=lf
+
+# fixture 是逐字节比对的产物 (make-fixtures --check)。checkout 成 CRLF 会让
+# --check 在所有 Windows 机器上失败; 这两个目录必须保持 LF。
+tests/fixtures/spotify/** text eol=lf
+tests/fixtures/netflix/** text eol=lf
