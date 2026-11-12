@@ -166,6 +166,14 @@ def test_check_resolvable_rejects_a_dangling_reference() -> None:
         check_resolvable(insights, story)
 
 
+def test_two_suppressed_entities_cannot_collapse_into_one_id() -> None:
+    """两个实体都被整体移除时, id 段会撞车; 宁可失败也不让一条洞察凭空消失。"""
+    insights, story = pair()
+
+    with pytest.raises(RecapError):
+        redact_pair(insights, story, book=Book(salt=FIXED), words=["alpha", "health"])
+
+
 def test_read_words_ignores_comments_blank_lines_and_duplicates(tmp_path: Path) -> None:
     path = tmp_path / "redact.txt"
     path.write_text("\ufeff# 注释\n\n alpha \nALPHA\nbeta\n", encoding="utf-8")

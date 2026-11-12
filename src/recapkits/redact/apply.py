@@ -106,12 +106,20 @@ def rewrite_story(
 
 
 def check_resolvable(insights: dict[str, Any], story: dict[str, Any]) -> None:
-    """写盘前的一致性闸门: 故事的每个占位符都能在脱敏后的 insights 里解析。"""
+    """写盘前的一致性闸门: id 唯一, 且故事的每个占位符都能解析。"""
     try:
         refs = build_refs(insights)
         parsed = Story.from_dict(story)
     except StorySchemaError as exc:
         raise RecapError(f"脱敏产物没有通过结构校验: {exc}") from exc
+
+    ids = [
+        str(item.get("id", "")) for item in insights.get("insights", []) if isinstance(item, dict)
+    ]
+    duplicated = sorted({ident for ident in ids if ids.count(ident) > 1})
+    if duplicated:
+        # 两个实体都被抑制表整体移除时会撞到这个; 静默合并会让一条洞察凭空消失。
+        raise RecapError(f"脱敏后出现重复的洞察 id: {', '.join(duplicated)}")
 
     for index, card in enumerate(parsed.cards, start=1):
         allowed = [card.insight] if card.insight else []
