@@ -34,6 +34,11 @@ jobs:
           ! grep -rn -E "https?://" src
           ! grep -rn -E "datetime\.now|astimezone|strftime\('%H'\)|urllib\.request|CURRENT_TIMESTAMP" src
 
+      # 真实导出永不进 git：入库路径的文件名拦截 + fixtures 的 PII/熵扫描。
+      # 提交者不会恶意夹带，问题出在 `git add .` 上；这一步让它在合并前失败。
+      - name: guard-exports
+        run: uv run python scripts/guard-exports.py
+
   # render 测试用 skipif(needs_node): 无 node 的环境会全部跳过而仍然"全绿"。
   # 这个 job 用一条独立断言把"因为跳过而全绿"挡住。
   node-gate:
