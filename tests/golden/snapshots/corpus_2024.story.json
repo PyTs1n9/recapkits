@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:06e02590"
+  },
+  "cards": [
+    {
+      "id": "cover",
+      "type": "cover",
+      "copy": {
+        "kicker": "本地生成 · 未上传",
+        "headline": "2024",
+        "sub": "{{vol.total:git:2024.events}} 条记录，落在 {{vol.total:git:2024.active_days}} 个活跃日"
+      },
+      "evidence": [
+        "vol.total:git:2024"
+      ]
+    },
+    {
+      "id": "big-number",
+      "type": "big-number",
+      "copy": {
+        "kicker": "全年",
+        "headline": "记录总数",
+        "sub": "覆盖 {{vol.total:git:2024.active_days}} 个活跃日"
+      },
+      "insight": "vol.total:git:2024"
+    },
+    {
+      "id": "ranking",
+      "type": "ranking",
+      "copy": {
+        "kicker": "集中度",
+        "headline": "出现最多的项目",
+        "sub": "首位占全部记录的 {{conc.top_entity:repo:alpha:2024.share}}"
+      },
+      "insight": "conc.top_entity:repo:alpha:2024"
+    },
+    {
+      "id": "heatmap",
+      "type": "heatmap",
+      "copy": {
+        "kicker": "分布",
+        "headline": "全年逐日",
+        "sub": "颜色越亮，当天记录越多"
+      },
+      "insight": "vol.daily_series:git:2024"
+    },
+    {
+      "id": "clock",
+      "type": "clock",
+      "copy": {
+        "kicker": "节律",
+        "headline": "每小时的样子",
+        "sub": "深夜时段占 {{time.hour_rhythm:git:2024.late_night_share}}"
+      },
+      "insight": "time.hour_rhythm:git:2024"
+    },
+    {
+      "id": "summary",
+      "type": "summary-grid",
+      "copy": {
+        "kicker": "总览",
+        "headline": "整年，这样过去"
+      },
+      "evidence": [
+        "vol.total:git:2024",
+        "conc.top_entity:repo:alpha:2024",
+        "time.hour_rhythm:git:2024"
+      ]
+    }
+  ]
+}

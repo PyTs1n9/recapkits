@@ -18,11 +18,13 @@ import pytest
 from recapkits.db import Event, count_events, insert_events
 from recapkits.emit import render
 from recapkits.insights import engine
+from recapkits.story import auto
 from recapkits.tz import rebuild_local, to_utc_iso
 
 TZ = "Asia/Shanghai"
 YEAR = 2024
 SNAPSHOT = Path(__file__).parent / "snapshots" / "corpus_2024.insights.json"
+STORY_SNAPSHOT = Path(__file__).parent / "snapshots" / "corpus_2024.story.json"
 
 #: 七段活跃区间, 合起来 46 天。
 BLOCKS = (
@@ -243,3 +245,14 @@ def test_snapshot_matches(corpus: sqlite3.Connection) -> None:
         SNAPSHOT.write_text(actual, encoding="utf-8")
 
     assert actual == SNAPSHOT.read_text(encoding="utf-8")
+
+
+def test_story_bytes_are_frozen(corpus: sqlite3.Connection) -> None:
+    """git 语料的故事字节冻结: 多源收口不得改动单一 git 源的文案。"""
+    actual = auto.plan(payload_of(corpus), year=YEAR).as_json()
+
+    if os.environ.get("RECAP_UPDATE_SNAPSHOT") == "1":
+        STORY_SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
+        STORY_SNAPSHOT.write_bytes(actual.encode("utf-8"))
+
+    assert actual == STORY_SNAPSHOT.read_text(encoding="utf-8")
