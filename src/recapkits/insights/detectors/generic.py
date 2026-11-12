@@ -147,6 +147,24 @@ def _vol_busiest_day(daily: list[tuple[str, int]], source: str, period: Period) 
     ]
 
 
+def _escape_entity(name: str) -> str:
+    """把实体名编码成 id 片段。
+
+    id 会进 JSON、日志与占位符。直接拼用户数据时, 中文仓库名会因为 V1 的字符集
+    校验而永远无法被 story 引用; 大写字母、空格与点号同理(点号还会和
+    `insight.fact` 的分隔符混淆)。这里按 UTF-8 字节转义、只保留 `[a-z0-9_-]`:
+    可逆、单射, 且 ASCII 小写名一个字节都不变 —— 已有的 id 与快照因此不受影响。
+    """
+    out: list[str] = []
+    for byte in name.encode("utf-8"):
+        char = chr(byte)
+        if char.isascii() and (char.islower() or char.isdigit() or char in "_-"):
+            out.append(char)
+        else:
+            out.append(f"%{byte:02x}")
+    return "".join(out)
+
+
 def _conc_top_entity(
     conn: sqlite3.Connection,
     source: str,
@@ -173,7 +191,10 @@ def _conc_top_entity(
     entity_kind = "repo" if source == "git" else "entity"
     return [
         make_insight(
-            ident=f"conc.top_entity:{entity_kind}:{top[0]['entity']}:{period.start[:4]}",
+            ident=(
+                f"conc.top_entity:{entity_kind}:{_escape_entity(str(top[0]['entity']))}"
+                f":{period.start[:4]}"
+            ),
             kind="conc.top_entity",
             source=source,
             period=period,

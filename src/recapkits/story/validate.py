@@ -16,7 +16,9 @@ __all__ = ["build_refs", "validate_story"]
 
 #: 占位符里允许的字符。必须包含 `-`, 因为 disc.* 的 id 带日期
 #: (例如 disc.longest_gap:git:2024:2024-03-10); 少了它, 这类洞察永远无法被引用。
-STRICT_PLACEHOLDER = re.compile(r"^[a-z0-9_.:-]+$")
+#: 必须包含 `%`, 因为 conc.* 的实体名按 UTF-8 字节转义 (见 detectors/generic.py):
+#: 中文仓库名会变成 `%e9%be%98-repo`, 转义字符是 id 的一部分而不是错误。
+STRICT_PLACEHOLDER = re.compile(r"^[a-z0-9_.:%-]+$")
 
 
 def _card_allowed(card: Card) -> list[str]:
