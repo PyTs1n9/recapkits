@@ -84,6 +84,8 @@ def collect_entities(insights: dict[str, Any]) -> dict[str, str]:
         labels = rank_labels(item)
         if labels:
             for _, label in labels:
+                # 同名跨类别 (repo 与 artist 都叫 foo) 只保留先遇到的类别: 假名按
+                # 名字分配, 一个名字只能有一个前缀, 否则同一实体会有两个名字。
                 kinds.setdefault(label, parts[0])
         else:
             name = unquote(parts[1])

@@ -5,9 +5,23 @@ from pathlib import Path
 
 import pytest
 
-from recapkits.redact.pseudonym import Book, PseudonymError, load, new_salt, save, stem
+from recapkits.insights.detectors.generic import ENTITY_KINDS
+from recapkits.redact.pseudonym import (
+    KIND_PREFIX,
+    Book,
+    PseudonymError,
+    load,
+    new_salt,
+    save,
+    stem,
+)
 
 FIXED = "0123456789abcdef" * 2
+
+
+def test_every_entity_kind_has_a_prefix() -> None:
+    """检测器的类别词与假名前缀不能各写一套; 新增源时这条会先红。"""
+    assert set(ENTITY_KINDS.values()) <= set(KIND_PREFIX)
 
 
 def test_same_salt_and_name_get_the_same_pseudonym() -> None:
