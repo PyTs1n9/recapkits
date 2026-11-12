@@ -1,0 +1,35 @@
+{
+  "fonttools": "4.68.0",
+  "fonts": [
+    {
+      "key": "noto-sans-sc",
+      "family": "Noto Sans SC",
+      "source": "https://raw.githubusercontent.com/google/fonts/2894aab31764f10f29c421bdfd2340d3b382d384/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf",
+      "source_sha256": "a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da",
+      "source_bytes": 17772300,
+      "output": "noto-sans-sc.woff2.b64",
+      "output_sha256": "e4133a214195a1dd933a5afc1655252fddd65b07ec0689d5312314543d7e845e",
+      "woff2_sha256": "8273ee1a96d9c17db1b3a954932aa511c2a0fb56bc4cba021972891f718f2ca6",
+      "woff2_bytes": 1024896,
+      "b64_bytes": 1366528,
+      "glyphs": 3932,
+      "codepoints": 3883,
+      "license": "OFL-NotoSansSC.txt"
+    },
+    {
+      "key": "inter-tight",
+      "family": "Inter Tight",
+      "source": "https://raw.githubusercontent.com/google/fonts/fac60545cc0de9d4eff6eb5b1ab88bcdfc9ecc69/ofl/intertight/InterTight%5Bwght%5D.ttf",
+      "source_sha256": "b81b73dcb64df3c230cabade7df6c5773bf863233f24c9ee51087519f1f88b6f",
+      "source_bytes": 581588,
+      "output": "inter-tight.woff2.b64",
+      "output_sha256": "d45a45edfa0e310035ba8a5de439e77827e8a9aca3daa4a29da6b89d915cdad0",
+      "woff2_sha256": "42035f196aa4921ae19549d313ca30ea596171af6fd3148f3e5fbe96fd4b51ff",
+      "woff2_bytes": 25556,
+      "b64_bytes": 34076,
+      "glyphs": 207,
+      "codepoints": 3883,
+      "license": "OFL-InterTight.txt"
+    }
+  ]
+}

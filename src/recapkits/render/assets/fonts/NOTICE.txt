@@ -1,0 +1,19 @@
+recapkits 随包字体
+==================
+
+以下字体的字形经子集化后内联进渲染器, 均为 SIL Open Font License 1.1。
+完整许可文本见本目录的 OFL-*.txt。
+
+Noto Sans SC (variable, wght 轴保留)
+  来源     https://raw.githubusercontent.com/google/fonts/2894aab31764f10f29c421bdfd2340d3b382d384/ofl/notosanssc/NotoSansSC%5Bwght%5D.ttf
+  源 sha256 a3041811a78c361b1de50f953c805e0244951c21c5bd412f7232ef0d899af0da
+  子集     一级字 3755 + ASCII + 标点 (3883 个码位)
+  产物     noto-sans-sc.woff2.b64 (1,024,896 字节 WOFF2)
+  许可     OFL-NotoSansSC.txt
+
+Inter Tight (variable, wght 轴保留)
+  来源     https://raw.githubusercontent.com/google/fonts/fac60545cc0de9d4eff6eb5b1ab88bcdfc9ecc69/ofl/intertight/InterTight%5Bwght%5D.ttf
+  源 sha256 b81b73dcb64df3c230cabade7df6c5773bf863233f24c9ee51087519f1f88b6f
+  子集     一级字 3755 + ASCII + 标点 (3883 个码位)
+  产物     inter-tight.woff2.b64 (25,556 字节 WOFF2)
+  许可     OFL-InterTight.txt

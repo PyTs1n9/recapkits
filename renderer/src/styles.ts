@@ -1,8 +1,9 @@
 /**
  * 样式装配。产物与开发态共用这一份顺序, 免得"预览里对、导出后不对"。
  *
- * 顺序是有意义的: token 先于所有规则 (变量要先定义), 基础重置与舞台先于卡片骨架,
- * 卡片骨架先于各卡型。后面的文件按同权重覆盖前面的, 所以不要随意调换。
+ * 顺序是有意义的: 随包字体的 @font-face 最先 (字族必须先存在), 然后 token
+ * (变量要先定义), 基础重置与舞台先于卡片骨架, 卡片骨架先于各卡型。后面的文件
+ * 按同权重覆盖前面的, 所以不要随意调换。
  */
 import baseCss from "./base.css?raw";
 import cardCss from "./card.css?raw";
@@ -12,6 +13,7 @@ import coverCss from "./cards/cover.css?raw";
 import heatmapCss from "./cards/heatmap.css?raw";
 import rankingCss from "./cards/ranking.css?raw";
 import summaryGridCss from "./cards/summary-grid.css?raw";
+import { FONT_FACE_CSS } from "./fonts";
 import tokensCss from "./tokens.css?raw";
 
 // ?raw 把文件字节原样带进 bundle。Windows 的 core.autocrlf 会把 checkout 变成 CRLF,
@@ -20,6 +22,7 @@ import tokensCss from "./tokens.css?raw";
 const normalize = (css: string) => css.replace(/\r\n/g, "\n");
 
 export const STYLES = [
+  FONT_FACE_CSS,
   tokensCss,
   baseCss,
   cardCss,

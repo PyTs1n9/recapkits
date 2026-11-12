@@ -4,12 +4,10 @@
  * transform 上。这样 PNG/MP4 阶段的截图与浏览器里看到的是同一套几何, 不需要为
  * 两个目标各调一遍。
  *
- * 字体确定性推迟到 PNG/MP4 阶段 (阶段 7)。HTML 阶段用系统字体栈, 因为:
- * 1) 在浏览器里 CJK 字体本来就由系统提供, 随包字体只会让文件变大;
- * 2) CJK 子集化是件正经工作 (需要按实际文案裁剪字形), 在还没有像素输出的阶段
- *    为它付费没有回报。
- * 阶段 7 引入随包 WOFF2 时, 只替换下面的 --font-sans 与其 @font-face, 布局不用动。
- * 看到这里没有 @font-face 是**故意的**, 不是漏了。
+ * 字体是随包的 (见 fonts.ts): 两份变量字体以 base64 内联, 字族顺序是
+ * Inter Tight (数字与拉丁) → Noto Sans SC (CJK) → sans-serif。
+ * **不列系统字族**: 留着就等于允许回退, 而回退正是跨平台差异的来源。
+ * 生僻字仍会落到 sans-serif, 这是已知限制而不是设计。
  */
 
 :root {
@@ -38,10 +36,11 @@
   --track-tight: -0.025em;
   --track-wide: 0.22em;
 
-  /* 巨型数字的视觉底边补偿。line-height 0.9 是几何, 0.12em 是字体相关的修正:
-   * 行盒底落在安全区下沿时, CJK 字形仍会向下溢出。换字体后只重测这一个值,
-   * 由阶段 6c 的安全区断言验证, 不需要肉眼比对。 */
-  --display-baseline-shift: 0.12em;
+  /* 巨型数字的视觉底边补偿。line-height 0.9 是几何, 0.073em 是字体相关的修正:
+   * 行盒底落在安全区下沿时, 字形仍会向下溢出。随包字体落地后按 6c 的安全区断言
+   * 重测: 9:16 下墨迹底边 1593px, 底栏 1668px, 安全区下沿 1680px。换字体只重测
+   * 这一个值, 由像素断言验证, 不需要肉眼比对。 */
+  --display-baseline-shift: 0.073em;
 
   /* 表面与线条: 层次靠这几层叠出来, 而不是靠更多颜色 */
   --skin-surface: rgba(255, 255, 255, 0.045);
@@ -59,8 +58,7 @@
   --dur-slow: 700ms;
   --ease-out: cubic-bezier(0.2, 0.7, 0.1, 1);
 
-  --font-sans: "Inter Tight", -apple-system, "Segoe UI", "PingFang SC",
-    "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --font-sans: "Inter Tight", "Noto Sans SC", sans-serif;
 }
 
 /* 主题 neon: 暗底、饱和渐变、白色文字、单一强调色。文字不加投影。

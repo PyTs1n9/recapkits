@@ -14,7 +14,9 @@ png = [
 ]
 
 [dependency-groups]
-dev = ["ruff", "pyright", "pytest", "hypothesis"]
+# fonttools / brotli 只在构建期用 (scripts/build-fonts.py 子集化并转 WOFF2),
+# 不进 dependencies, 也不进 [png]: 运行时零第三方依赖是硬约束。
+dev = ["ruff", "pyright", "pytest", "hypothesis", "fonttools", "brotli"]
 
 [build-system]
 requires = ["hatchling"]
