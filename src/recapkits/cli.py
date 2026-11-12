@@ -15,11 +15,14 @@ from collections.abc import Sequence
 from recapkits.commands import cmd_import, cmd_init, cmd_insights
 from recapkits.doctor import cmd_doctor
 from recapkits.errors import RecapError
+from recapkits.redact.cli import cmd_redact
 from recapkits.render.cli import cmd_preview, cmd_render
 from recapkits.run import cmd_run
 from recapkits.story.cli import cmd_story
 
-SUBCOMMANDS = frozenset({"init", "import", "insights", "doctor", "story", "render", "preview"})
+SUBCOMMANDS = frozenset(
+    {"init", "import", "insights", "doctor", "story", "render", "preview", "redact"}
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -114,6 +117,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-unknown-names", action="store_true", help="放行实体表外的专有名词"
     )
     preview.set_defaults(handler=cmd_preview)
+
+    redact = sub.add_parser("redact", help="生成可分享的脱敏版 insights.json 与 story.json")
+    redact.add_argument("--report", action="store_true", help="只打印审计, 不写任何文件")
+    redact.add_argument("--render", action="store_true", help="脱敏后接着出 HTML 与 MP4")
+    redact.add_argument("--insights", metavar="PATH", help="insights.json 路径")
+    redact.add_argument("--story", metavar="PATH", help="story.json 路径")
+    redact.add_argument("--out", metavar="DIR", help="输出目录, 默认 .recapkits/redacted/")
+    redact.add_argument("--allow-sensitive", action="store_true", help="--render 时授权高敏洞察")
+    redact.add_argument(
+        "--allow-unknown-names", action="store_true", help="--render 时放行实体表外的专有名词"
+    )
+    redact.set_defaults(handler=cmd_redact)
     return parser
 
 
@@ -166,3 +181,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.debug:
             raise
         return 1
+
+
+if __name__ == "__main__":  # `python -m recapkits.cli` 与控制台脚本等价
+    raise SystemExit(main())
