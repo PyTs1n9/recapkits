@@ -11,3 +11,7 @@ tests/fixtures/spotify/** text eol=lf
 tests/fixtures/netflix/** text eol=lf
 # 对抗性故事是静态数据, 行尾不参与断言; 与其余 fixture 保持一致。
 tests/fixtures/adversarial/** text eol=lf
+
+# SKILL.md 会被 `recap skill install` 原样复制到 .claude/ 与 AGENTS.md 的标记块,
+# 安装结果逐字节比对。checkout 成 CRLF 会让 Windows 与 Linux 装出不同字节。
+src/recapkits/skill/SKILL.md text eol=lf

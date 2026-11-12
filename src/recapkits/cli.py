@@ -18,10 +18,12 @@ from recapkits.errors import RecapError
 from recapkits.redact.cli import cmd_redact
 from recapkits.render.cli import cmd_preview, cmd_render
 from recapkits.run import cmd_run
+from recapkits.skill.cli import cmd_skill_install
+from recapkits.skill.install import TARGETS
 from recapkits.story.cli import cmd_story
 
 SUBCOMMANDS = frozenset(
-    {"init", "import", "insights", "doctor", "story", "render", "preview", "redact"}
+    {"init", "import", "insights", "doctor", "story", "render", "preview", "redact", "skill"}
 )
 
 
@@ -129,6 +131,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--allow-unknown-names", action="store_true", help="--render 时放行实体表外的专有名词"
     )
     redact.set_defaults(handler=cmd_redact)
+
+    skill = sub.add_parser("skill", help="把 agent skill 装到当前项目")
+    skill_sub = skill.add_subparsers(dest="skill_command", required=True)
+    install = skill_sub.add_parser("install", help="装 SKILL.md 到 .claude/、.cursor/ 或 AGENTS.md")
+    install.add_argument(
+        "--target",
+        action="append",
+        required=True,
+        choices=list(TARGETS),
+        help="可以重复; print 只打印到 stdout, 不能与其他 target 同用",
+    )
+    install.add_argument("--force", action="store_true", help="覆盖内容不同的已有文件")
+    install.set_defaults(handler=cmd_skill_install)
     return parser
 
 

@@ -15,11 +15,16 @@ GITIGNORE_HEADER = "# recapkits 工作区, 含用户数据, 永不提交"
 
 @dataclass(frozen=True)
 class Workspace:
-    """工作区根目录与配置。"""
+    """工作区根目录与配置。
+
+    `local_only` 是工作区策略而不是一次性开关: 一次设置, 所有命令一致 ——
+    做成每条命令的 flag 就一定会忘, 而这条策略守的是「数据不出本机」。
+    """
 
     root: Path
     tz: str
     year: int
+    local_only: bool = False
 
     @property
     def db_path(self) -> Path:
@@ -41,7 +46,12 @@ def load_workspace(root: Path | None = None) -> Workspace | None:
     if not config_path.is_file():
         return None
     data = json.loads(config_path.read_text(encoding="utf-8"))
-    return Workspace(root=base, tz=str(data["tz"]), year=int(data["year"]))
+    return Workspace(
+        root=base,
+        tz=str(data["tz"]),
+        year=int(data["year"]),
+        local_only=bool(data.get("local_only", False)),
+    )
 
 
 def ensure_gitignore(root: Path | None = None) -> None:
