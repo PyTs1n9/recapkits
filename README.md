@@ -41,6 +41,35 @@ uvx recapkits render --format html --aspect 9:16
 `render` 需要环境里有 **Node 22+**：HTML 由 `renderer/` 构建出的单文件渲染器产出
 （Preact SSR），这样版式只有一份实现，PNG/MP4 截的是同一个页面。
 
+### 数据源
+
+`--source` 取 `auto | git | spotify | netflix`，默认 `auto`：按各适配器对目录的打分取最高者；
+两个源同时命中且最高分与次高分相差不到 0.2 时**报错并要求显式指定** —— 宁可不猜，
+也不按字母序偷选一个。
+
+| `--source` | 目录里应该有什么 | 读哪些文件 |
+|---|---|---|
+| `git` | 一个仓库，或包含多个仓库的目录 | `.git` 里的提交记录 |
+| `spotify` | Extended streaming history 解压后的目录 | `Streaming_History_Audio_*.json` |
+| `netflix` | 导出包解压后的目录 | `ViewingActivity.csv`（可含 `Profiles/*/`） |
+
+```bash
+uvx recapkits init --tz Asia/Shanghai --year 2024
+uvx recapkits import ~/Downloads/Spotify\ Extended\ Streaming\ History --source spotify
+uvx recapkits import ~/Downloads/netflix-report --source netflix
+uvx recapkits import ~/code --source git
+```
+
+三个源可以同时导入，洞察按源分开算。多源同时存在时，`story --auto` **只讲一个源的故事**：
+按已选洞察的多数票定主源，其余源的卡不会混进同一份故事，而是进跳过表并写明「本回顾以
+X 为主源，Y 的洞察未入卡」—— 把 git 的日序列和 spotify 的总时长拼在一起，读者无从解释。
+
+口径（30 秒门槛、私密会话、续播去重、排除预告片等）以及「我们的数字和平台年度回顾
+为什么不一样」，逐条写在 `docs/adapters/spotify/KNOWN_DIVERGENCES.md` 与
+`docs/adapters/netflix/KNOWN_DIVERGENCES.md`。默认镜像平台口径，换口径的开关也记在那里。
+
+每个源导入两次，事件数不变、`insights.json` 逐字节相同：`row_hash` 是幂等键。
+
 想在改文案时实时看效果，用 `recap preview`（全项目唯一占用端口的命令）：
 
 ```bash
@@ -77,6 +106,14 @@ uvx --with 'recapkits[png]' recapkits render --format mp4 --aspect 9:16
 - **生僻字回退系统字体。** 随包的是 GB/T 2312 一级字（3755 个）+ ASCII + 常用标点；二级字
   与「龘」这类生僻字会用系统字体渲染。版式不会崩（行盒按回退字形计算），但那一两个字的风格
   与随包字体不一致，在不同机器上也可能略有差异。仓库名、项目名里出现生僻字时会遇到。
+- **播客与有声书计入时长，但不进「最多艺人」。** Spotify 导出里这几类行的
+  `master_metadata_*` 全为 `null`；它们仍是真实的收听，所以算进总时长与事件数，只是不产生
+  艺人实体。把它们聚成一个「（未命名）」会让榜单变成一句假话。
+- **Netflix 导出没有流派元数据。** 从片名结构反推出来的口味结论一律不出卡；`Title` 里的季与集
+  分开存放，榜单按剧集而不是按季排名。
+- **时区改变结果，这是预期。** spotify 与 netflix 的导出只带 UTC，源不带偏移，本地小时由
+  `init --tz` 决定。同一份导出分别按 `Asia/Shanghai` 与 `America/New_York` 导入，
+  `time.hour_rhythm` 的深夜占比必须不同；两次相同说明偏移被错写成了 0。
 - 不做音频；不做 1:1 比例；只有 `neon` 一套主题。
 
 ## 改渲染器
@@ -108,6 +145,16 @@ uv sync                   # cmd：在仓库根目录会命中 uv.cmd
 ```
 
 `.tools/` 不入库（uv 二进制约 31 MB）。换机后执行一次 `powershell -ExecutionPolicy Bypass -File scripts\bootstrap.ps1` 即可就位并同步依赖。
+
+提交前可以本地跑一次导出守卫：
+
+```bash
+./uv run python scripts/guard-exports.py
+```
+
+它拦两类事故：`tests/fixtures/` 之外的导出特征文件（`*Streaming_History_Audio*`、
+`ViewingActivity.csv`、超过 1 MB 的 `export.xml`），以及 fixture 里的邮箱、非文档网段
+IPv4 与高熵令牌。CI 每次都跑，本地跑是为了在 `git add .` 之后、推送之前就发现。
 
 ## 隐私
 
