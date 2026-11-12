@@ -25,11 +25,10 @@
   border: 1px solid var(--skin-hairline);
   border-radius: var(--radius-panel);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
-  /* 负扩散把外阴影收在面板底下: 70px 的柔化会横向漏进左右安全区,
-   * 6c 的边带扫描会以 ΔE>2 抓到它。 */
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    0 18px 40px -18px rgba(0, 0, 0, 0.55);
+  /* 只留一道内高光, 不做外阴影: 黑色外阴影落在 #0b0b0f 的底上目视不可见, 却会
+   * 横向溢出 7px 并把 ΔE 1.05 带进右边带。面板的"装裱感"由描边、渐变与内高光
+   * 三样撑起来, 不靠一个看不见的阴影。 */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .heatmap__grid {
