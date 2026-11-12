@@ -9,6 +9,7 @@ import pytest
 from recapkits.emit import render
 from recapkits.insights.detectors import generic
 from recapkits.insights.model import Fact, Insight, Period, Series, SeriesError, day_keys
+from recapkits.payload import measure, minimize
 
 
 def _series(axis: str, keys: tuple[str, ...], values: tuple[float, ...], unit: str) -> Series:
@@ -82,30 +83,35 @@ def test_daily_series_fills_days_without_events() -> None:
     assert found[0].score == 0.0
 
 
-def test_payload_preview_reports_a_series_delta(capsys) -> None:
-    """预览必须让用户看到 series 占了多少字节; 全 0 的差值说明没算对。"""
-    from recapkits.commands import _print_payload_sizes
+def test_the_agent_payload_keeps_a_series_verbatim() -> None:
+    """series 是校验输入, 不是文案素材: 最小化不能把它当"非决策字段"删掉。
 
+    删了它, agent 就拿不到能校验自己故事的那份数据 —— 一个必须先还原才能校验
+    的载荷是陷阱。
+    """
+    series = {
+        "axis": "day",
+        "keys": list(day_keys("2024-01-01", "2024-12-31")),
+        "values": [1.0] * 366,
+        "unit": "count",
+    }
     payload = {
         "version": 1,
         "insights": [
             {
                 "id": "vol.daily_series:git:2024",
-                "series": {
-                    "axis": "day",
-                    "keys": list(day_keys("2024-01-01", "2024-12-31")),
-                    "values": [1.0] * 366,
-                    "unit": "count",
-                },
+                "series": series,
+                "score_parts": {"signal": 0.0},
             }
         ],
     }
 
-    _print_payload_sizes(payload)
+    agent = minimize(payload)
 
-    out = capsys.readouterr().out
-    assert "不含 series" in out
-    assert "0.0%" not in out
+    assert agent["insights"][0]["series"] == series
+    assert "score_parts" not in agent["insights"][0]
+    # series 不在被删字段里: 明细三行只该出现 DROPPED 里的名字
+    assert [name for name, _ in measure(payload).dropped] == ["score_parts"]
 
 
 def _insight(*, series: Series | None) -> Insight:

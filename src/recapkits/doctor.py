@@ -76,6 +76,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         print("workspace  未初始化; 先运行 recap init")
         return 0
     print(f"workspace  {WORKSPACE}/  tz={workspace.tz}  year={workspace.year}")
+    if workspace.local_only:
+        strategy = "本地模式（不生成 agent 载荷）"  # noqa: RUF001
+    else:
+        strategy = "默认（生成 agent 载荷）"  # noqa: RUF001
+    print(f"策略       {strategy}")
     if not workspace.db_path.is_file():
         print("events     数据库不存在")
         return 0

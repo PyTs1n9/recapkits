@@ -39,10 +39,10 @@ def test_no_md_skips_the_file(tmp_path: Path, monkeypatch, git_repo: Path) -> No
     assert not (tmp_path / ".recapkits" / "out" / "insights.md").exists()
 
 
-def test_payload_preview_reports_series_bytes(
+def test_payload_preview_reports_the_agent_payload(
     tmp_path: Path, monkeypatch, git_repo: Path, capsys
 ) -> None:
-    """只报字节数, 不打印洞察内容; 含/不含 series 两行都要有。"""
+    """外发清单是三行: 完整版、agent 版、被删字段; 不打洞察内容。"""
     monkeypatch.chdir(tmp_path)
     main(["init", "--year", "2024"])
     main(["import", str(git_repo), "--source", "git"])
@@ -52,8 +52,9 @@ def test_payload_preview_reports_series_bytes(
 
     out = capsys.readouterr().out
     assert "payload" in out
-    assert "不含 series" in out
-    assert "series" in out
+    assert "agent" in out
+    assert "删除" in out
+    assert "不含 series" not in out
     payload = (tmp_path / ".recapkits" / "out" / "insights.json").read_text(encoding="utf-8")
     assert json.loads(payload)["version"] == 1
 

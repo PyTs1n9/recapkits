@@ -36,6 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
     init = sub.add_parser("init", help="建立工作区")
     init.add_argument("--tz", default="Asia/Shanghai", help="IANA 时区名, 默认 Asia/Shanghai")
     init.add_argument("--year", type=int, help="回顾年份, 默认当前 UTC 年")
+    init.add_argument(
+        "--local-only",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="本地模式: 不生成 agent 载荷、不装 skill; 已有工作区上只改这一项",
+    )
     init.set_defaults(handler=cmd_init)
 
     imp = sub.add_parser("import", help="导入一个目录")
@@ -63,7 +69,13 @@ def build_parser() -> argparse.ArgumentParser:
     insights.add_argument(
         "--payload-preview",
         action="store_true",
-        help="只报发出去的字节数 (含/不含 series), 不打印内容",
+        help="报外发清单: 完整版与 agent 版的字节数、被删字段; --json 时只打 agent 版",
+    )
+    insights.add_argument(
+        "--entities",
+        default="name",
+        choices=["name", "placeholder"],
+        help="name 写真实实体名; placeholder 写假名并生成 agent/restore.json",
     )
     insights.set_defaults(handler=cmd_insights)
 

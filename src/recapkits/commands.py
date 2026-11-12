@@ -26,6 +26,7 @@ from recapkits.emit import render, write
 from recapkits.errors import RecapError
 from recapkits.insights import engine, markdown
 from recapkits.insights.model import Insight
+from recapkits.payload import measure, minimize
 from recapkits.tz import rebuild_local, utc_now_iso
 from recapkits.workspace import WORKSPACE, Workspace, ensure_gitignore, load_workspace
 
@@ -135,30 +136,40 @@ def _print_insights(
         print(f"    (另有 {len(auxiliary)} 条渲染专用序列: {kinds}; 不参与排名)")
 
 
-def _print_payload_sizes(payload: dict[str, object]) -> None:
-    """只报字节数, 不打印内容: 用户要知道自己会发出去多少。"""
-    full = len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
-    raw_insights = payload.get("insights")
-    insights: list[object] = raw_insights if isinstance(raw_insights, list) else []
-    stripped = [
-        {key: value for key, value in item.items() if key != "series"}
-        for item in insights
-        if isinstance(item, dict)
-    ]
-    bare = len(json.dumps({**payload, "insights": stripped}, ensure_ascii=False).encode("utf-8"))
-    delta = full - bare
-    share = (delta / full) if full else 0.0
-    print(f"payload      {full:,} 字节 · {len(stripped)} 条洞察")
-    print(f"不含 series  {bare:,} 字节 · series {delta:,} 字节 ({share:.1%})")
+def _print_payload_preview(payload: dict[str, object]) -> None:
+    """外发清单: 三行, 只有计数与字段名, 不打内容。
+
+    `--json` 时由调用方改打最小版, 这里不做分支 —— 一份函数一种输出。
+    """
+    measurement = measure(payload)
+    share = measurement.saved_share
+    sign = "-" if share > 0 else ""
+    tail = f"（{sign}{share:.0%}）"  # noqa: RUF001
+    print(f"payload      {measurement.full_bytes:,} 字节 · {measurement.count} 条洞察")
+    print(f"agent        {measurement.agent_bytes:,} 字节 · {measurement.count} 条洞察{tail}")
+    detail = " · ".join(f"{key} {size:,}" for key, size in measurement.dropped) or "无"
+    print(f"删除         {detail}")
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    """建工作区, 写配置与 .gitignore; 已存在时只提示。"""
+    """建工作区, 写配置与 .gitignore; 已有工作区时只切换 local_only。
+
+    `--local-only` 是工作区策略而不是一次性开关: 一次设置, 所有命令一致。
+    不带这个 flag 时保持「不覆盖」, 否则改个 tz 就会顺手抹掉用户的策略。
+    """
     root = Path.cwd() / WORKSPACE
     config_path = root / "config.json"
+    local_only = getattr(args, "local_only", None)
     if config_path.is_file():
         data = json.loads(config_path.read_text(encoding="utf-8"))
-        print(f"工作区已存在: {root} (tz={data['tz']}, year={data['year']}), 未覆盖")
+        if local_only is None:
+            print(f"工作区已存在: {root} (tz={data['tz']}, year={data['year']}), 未覆盖")
+            return 0
+        data["local_only"] = bool(local_only)
+        config_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        print(f"本地模式: {'开' if data['local_only'] else '关'} ({config_path})")
         return 0
     try:
         ZoneInfo(args.tz)
@@ -167,12 +178,16 @@ def cmd_init(args: argparse.Namespace) -> int:
 
     year = int(args.year) if args.year else int(utc_now_iso()[:4])
     root.mkdir(parents=True, exist_ok=True)
-    config = {"tz": args.tz, "year": year, "created_at": utc_now_iso()}
+    config: dict[str, object] = {"tz": args.tz, "year": year, "created_at": utc_now_iso()}
+    if local_only:
+        config["local_only"] = True
     config_path.write_text(
         json.dumps(config, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     ensure_gitignore()
     print(f"已创建工作区 {root} (tz={args.tz}, year={year})")
+    if local_only:
+        print("策略       本地模式（不生成 agent 载荷）")  # noqa: RUF001
     print(f"下一步: recap import <导出目录>  (自动识别 {' / '.join(ADAPTERS)}, 或用 --source 指定)")
     return 0
 
@@ -218,8 +233,13 @@ def cmd_import(args: argparse.Namespace) -> int:
 
 
 def cmd_insights(args: argparse.Namespace) -> int:
-    """跑引擎, 选卡, 写 insights.json, 并按需打印。"""
+    """跑引擎, 选卡, 写完整版与 agent 版, 并按需打印。"""
     workspace = _require_workspace()
+    entities = getattr(args, "entities", "name")
+    if workspace.local_only and (args.payload_preview or entities != "name"):
+        raise RecapError("本地模式不生成外发载荷: 先 recap init --no-local-only")
+    if entities != "name":
+        raise RecapError("--entities=placeholder 需要 agent/restore.json, 下一阶段启用")
     if not workspace.db_path.is_file():
         raise RecapError("还没有数据库: 先运行 recap import <目录>")
 
@@ -243,6 +263,11 @@ def cmd_insights(args: argparse.Namespace) -> int:
             tz=workspace.tz,
         )
         out_path = write(workspace.out_path, payload)
+        agent_path = (
+            None
+            if workspace.local_only
+            else write(workspace.agent_insights_path, minimize(payload))
+        )
         md_path = workspace.out_path.with_name("insights.md")
         if args.md:
             md_path.parent.mkdir(parents=True, exist_ok=True)
@@ -259,7 +284,10 @@ def cmd_insights(args: argparse.Namespace) -> int:
             )
 
         if args.payload_preview:
-            _print_payload_sizes(payload)
+            if args.json:
+                print(json.dumps(minimize(payload), ensure_ascii=False, indent=2))
+                return 0
+            _print_payload_preview(payload)
         if args.json:
             print(json.dumps(payload, ensure_ascii=False, indent=2))
             return 0
@@ -269,6 +297,10 @@ def cmd_insights(args: argparse.Namespace) -> int:
         print(f"已写入 {out_path}")
         if args.md:
             print(f"已写入 {md_path}")
+        if agent_path is not None:
+            print(f"已写入 {agent_path}")
+        elif workspace.agent_dir.is_dir():
+            print(f"本地模式: {workspace.agent_dir} 已存在, 未改写")
         if not ranked:
             print("没有达到样本门槛的洞察: 换更长窗口, 或再导入一个源", file=sys.stderr)
         return 0

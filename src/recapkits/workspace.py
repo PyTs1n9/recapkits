@@ -38,6 +38,20 @@ class Workspace:
     def story_path(self) -> Path:
         return self.root / "story.json"
 
+    @property
+    def agent_dir(self) -> Path:
+        """给 agent 的载荷目录; 与 out/ 分开, 因为它们的外发语义不同。"""
+        return self.root / "agent"
+
+    @property
+    def agent_insights_path(self) -> Path:
+        return self.agent_dir / "insights.json"
+
+    @property
+    def restore_path(self) -> Path:
+        """假名 → 原名的还原表; 含原名, 等于原文, 不能分享。"""
+        return self.agent_dir / "restore.json"
+
 
 def load_workspace(root: Path | None = None) -> Workspace | None:
     """读工作区配置; 未初始化时返回 None。"""

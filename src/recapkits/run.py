@@ -44,7 +44,14 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     print()
     code = cmd_insights(
-        _ns(json=False, top=args.top, explain=False, md=True, payload_preview=False)
+        _ns(
+            json=False,
+            top=args.top,
+            explain=False,
+            md=True,
+            payload_preview=False,
+            entities="name",
+        )
     )
     if code != 0:
         return code
@@ -53,7 +60,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     if not workspace.story_path.is_file():
         if args.no_auto:
             print(f"还没有故事: 写一份 {workspace.story_path}, 再跑 recap render")
-            print("需要 agent 帮写时, 把 insights.json 交给它, 按 skill 写 story.json")
+            if not workspace.local_only:
+                print("需要 agent 帮写时, 把 agent/insights.json 交给它, 按 skill 写 story.json")
             return 0
         # 少了这一步, 「引擎不会自动写故事」就是上手的第一卡点: 22 条事件 →
         # 1 条洞察 → 用户停在 0 张卡。自动规划只是把这一步补上, 不改变任何校验规则。
