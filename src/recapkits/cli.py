@@ -60,8 +60,16 @@ def build_parser() -> argparse.ArgumentParser:
     doctor = sub.add_parser("doctor", help="诊断环境与工作区")
     doctor.set_defaults(handler=cmd_doctor)
 
-    story = sub.add_parser("story", help="校验 story.json")
-    story.add_argument("--check", required=True, metavar="PATH", help="要校验的 story.json")
+    story = sub.add_parser("story", help="校验或自动生成 story.json")
+    mode = story.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--check", metavar="PATH", help="要校验的 story.json")
+    mode.add_argument("--auto", action="store_true", help="从 insights.json 规划一份故事")
+    story.add_argument("--out", metavar="PATH", help="--auto 的输出, 默认 .recapkits/story.json")
+    story.add_argument("--force", action="store_true", help="--auto 时覆盖已存在的 story.json")
+    story.add_argument("--year", type=int, help="--auto 的回顾年份, 默认工作区年份")
+    story.add_argument("--theme", default="neon", help="--auto 的主题, 默认 neon")
+    story.add_argument("--tone", default="deadpan", help="--auto 的语气, 默认 deadpan")
+    story.add_argument("--locale", default="zh-CN", help="--auto 的语言, 默认 zh-CN")
     story.add_argument("--insights", metavar="PATH", help="insights.json 路径")
     story.add_argument("--allow-sensitive", action="store_true", help="授权使用高敏洞察")
     story.add_argument("--allow-unknown-names", action="store_true", help="放行实体表外的专有名词")
@@ -114,6 +122,11 @@ def build_run_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tz", default="Asia/Shanghai", help="IANA 时区名, 默认 Asia/Shanghai")
     parser.add_argument("--year", type=int, help="回顾年份, 默认当前 UTC 年")
     parser.add_argument("--top", type=int, default=10, help="最多选几张卡, 默认 10")
+    parser.add_argument(
+        "--no-auto",
+        action="store_true",
+        help="缺少 story.json 时只停到 insights, 不自动生成故事",
+    )
     parser.set_defaults(handler=cmd_run)
     return parser
 

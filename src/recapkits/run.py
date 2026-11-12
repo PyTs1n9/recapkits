@@ -12,6 +12,7 @@ from recapkits.commands import cmd_import, cmd_init, cmd_insights
 from recapkits.errors import RecapError
 from recapkits.render.cli import cmd_render
 from recapkits.render.node import require_node
+from recapkits.story.cli import auto_story
 from recapkits.workspace import load_workspace
 
 
@@ -50,9 +51,24 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     print()
     if not workspace.story_path.is_file():
-        print(f"还没有故事: 写一份 {workspace.story_path}, 再跑 recap render")
-        print("需要 agent 帮写时, 把 .recapkits/out/insights.json 交给它, 按 skill 生成 story.json")
-        return 0
+        if args.no_auto:
+            print(f"还没有故事: 写一份 {workspace.story_path}, 再跑 recap render")
+            print("需要 agent 帮写时, 把 insights.json 交给它, 按 skill 写 story.json")
+            return 0
+        # 少了这一步, 「引擎不会自动写故事」就是上手的第一卡点: 22 条事件 →
+        # 1 条洞察 → 用户停在 0 张卡。自动规划只是把这一步补上, 不改变任何校验规则。
+        code = auto_story(
+            insights=None,
+            out=None,
+            year=None,
+            theme="neon",
+            tone="deadpan",
+            locale="zh-CN",
+            force=False,
+        )
+        if code != 0:
+            return code
+        print()
 
     return cmd_render(
         _ns(

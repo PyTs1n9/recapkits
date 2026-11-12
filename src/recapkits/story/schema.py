@@ -72,6 +72,18 @@ class InsightRef:
     fact_list: tuple[RefFact, ...] = ()
     series: Series | None = None
 
+    @property
+    def headline_value(self) -> float:
+        """headline 的数值形态; 自动规划挑序列时用 (非数值按 0 处理)。
+
+        `fact_list` 的第一条就是 `headline_fact` (见 refs.build_refs), 所以这里
+        不需要再存一份值 —— 两份同源数据迟早会漂移。
+        """
+        if not self.fact_list:
+            return 0.0
+        raw = self.fact_list[0].value
+        return float(raw) if isinstance(raw, int | float) and not isinstance(raw, bool) else 0.0
+
 
 def format_errors(errors: list[StoryError]) -> str:
     """把错误列表排成逐行可读的文本; CLI 与 render 共用, 免得两处各写一遍格式。"""
