@@ -48,6 +48,7 @@ class IngestReport:
     src_hash: str
     coverage: float | None = None
     warnings: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
     files: list[FileLedger] = field(default_factory=list)
 
 

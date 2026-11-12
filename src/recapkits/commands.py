@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from recapkits.adapters.base import Adapter, FileLedger, IngestReport
 from recapkits.adapters.git_local import GitAdapter
+from recapkits.adapters.netflix import NetflixAdapter
 from recapkits.adapters.spotify import SpotifyAdapter
 from recapkits.db import (
     connect,
@@ -33,6 +34,7 @@ from recapkits.workspace import WORKSPACE, Workspace, ensure_gitignore, load_wor
 ADAPTERS: dict[str, Adapter] = {
     "git": GitAdapter(),
     "spotify": SpotifyAdapter(),
+    "netflix": NetflixAdapter(),
 }
 
 #: 自动选路时, 第一名与第二名差小于这个值就认为「像两个源」, 要求显式指定。
@@ -98,6 +100,8 @@ def _print_report(report: IngestReport, added: int, start: str, end: str) -> Non
     if report.first_ts and report.last_ts:
         print(f"时间范围  {report.first_ts} 至 {report.last_ts}")
     print(f"覆盖率    {(report.coverage or 0.0):.1%} (窗口 {start} 至 {end})")
+    for note in report.notes:
+        print(f"说明      {note}")
     for warning in report.warnings[:5]:
         print(f"警告      {warning}")
     if len(report.warnings) > 5:

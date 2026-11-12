@@ -38,7 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument(
         "--source",
         default="auto",
-        choices=["auto", "git", "spotify"],
+        choices=["auto", "git", "spotify", "netflix"],
         help="数据源; auto 按 detect 最高分选, 两个源分数相差 < 0.2 时报错要求显式指定",
     )
     imp.add_argument("--since", help="起始本地日期 YYYY-MM-DD")

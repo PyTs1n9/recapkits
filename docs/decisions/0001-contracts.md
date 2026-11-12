@@ -8,6 +8,7 @@
   - 2026-11-12 阶段 6a：`insights.json` 每条洞察新增**可选** `series: {axis, keys, values, unit}`；新增第 8 个检测器 `vol.daily_series`。原因：`clock` 需要 24 小时分布、`heatmap` 需要逐日强度，而 `Fact.value` 只允许 `float | str`，没有地方放序列；若把序列写进 `display`，V1 的占位符校验会失去意义。约束：`len(keys) == len(values)`；`axis="hour"` 的键恰为 `"0".."23"`、`axis="weekday"` 恰为 `"0".."6"`（0=周一）、`axis="day"` 为覆盖审查窗口每一天的 `YYYY-MM-DD`（含零值）；`unit="share"` 时求和为 1.0（容差 1e-6）；无序列时不写该键。`vol.daily_series` 的 `signal` 固定 `0.0`，不参与排名，但 `select()` 必须在截断后无条件附回输出。其余字段未动。
   - 2026-11-12 阶段 7a：`conc.top_entity` 的 id 在拼接前把实体名按 UTF-8 字节转义（只保留 `[a-z0-9_-]`，其余写成 `%xx`），占位符字符集相应加入 `%`。原因：实体名来自用户的仓库目录名，中文、大写字母、空格与点号都会让 id 落在 V1 的字符集之外 —— 这类洞察能算出来却永远无法被任何 `story.json` 引用。转义可逆且单射，ASCII 小写名的 id 一个字节都不变（快照与既有故事不受影响）。字段与 id 的**结构**未动（仍是 `kind:source…:year`）。
   - 2026-11-12 阶段 8a：`source` 的允许值从 `git` 扩到 `git | spotify`（阶段 8b 追加 `netflix`）。原因：产品要兑现「任意导出 → 竖版视频」，而此前只有 git 一条源；两个一等适配器把已有字段填满，不需要新列。**字段与结构未动**：`events` 表、`insights.json`、`story.json` 的键一个没加、一个没改。`conc.top_entity` 的 id 仍为 `kind:source…:year`，实体类别词按源取 `repo` / `artist` / `show`；`title` 与 `subtitle` 都为空的行（例如播客）不进该检测器的候选，但仍计入事件数与时长。
+  - 2026-11-12 阶段 8b：`source` 追加 `netflix`，兑现 8a 的预留。原因：第二个一等适配器落地。**字段与结构仍未动**；`Profile Name` 只以 sha256 前 16 位参与 `row_hash`，明文不落任何列。`Title` 的剧名进 `subtitle`（实体），季与集分别进 `category` 与 `meta_json` —— 理由见 `docs/adapters/netflix/KNOWN_DIVERGENCES.md`：集中度检测器取 `subtitle` 优先，把季放进去会让榜单变成「出现最多的季」。
 
 本文件是四个契约的唯一事实源。以下内容在起步任务书 §5 中定义为「照抄，不是参考」，因此**逐字抄录，不做改写、不在示例上增删字段**（上述变更记录授权的字段除外）。
 
