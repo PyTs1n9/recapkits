@@ -73,6 +73,16 @@ jobs:
             exit 1
           fi
 
+      # 三条设计断言 (溢出 / 安全区 / 对比度) 同样不能靠"跳过"变绿。
+      - name: design-assertions-must-not-skip
+        run: |
+          set -euo pipefail
+          uv run pytest -q -m design -rs | tee design.log
+          if grep -q "skipped" design.log; then
+            echo "设计断言被跳过: node / renderer assets / 浏览器 缺失" >&2
+            exit 1
+          fi
+
   # 防止"改了前端忘了重建": assets/ 是入库的, dist/ 是构建产物, 两者必须一致。
   # 失效的后果很隐蔽 —— 用户拿到的 wheel 里是旧界面, 且不会有任何报错。
   renderer:

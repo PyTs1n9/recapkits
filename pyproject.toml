@@ -40,3 +40,6 @@ typeCheckingMode = "basic"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "design: 设计断言（真实布局溢出 / 像素安全区 / WCAG 对比度; 需要 Node + Playwright + 浏览器）",
+]

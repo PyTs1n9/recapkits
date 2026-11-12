@@ -148,5 +148,12 @@ recap preview                                                   # 本地预览, 
 渲染器组件用同一套启发式做卡片内检查。
 
 最终判据是阶段 6c 的真实布局测量：每个可能溢出的文本块都带 `data-fit="<槽位>"`，
-浏览器里断言 `scrollWidth <= clientWidth + 1` 且 `scrollHeight <= clientHeight + 1`。
-估算可以偏保守，但不能替代测量 —— 估算是为了早报错，测量才是"放不放得下"的答案。
+浏览器里横向断言 `scrollWidth <= clientWidth + 1`，纵向断言**渲染后的行数**不超过
+槽位预算（`sub` / `label` / `caveat` 两行，其余一行）。
+
+纵向为什么不用 `scrollHeight <= clientHeight + 1`：当 `line-height` 小于字体的墨迹比
+（Windows/YaHei 约 1.32em）时，Chrome 会把字形墨迹的溢出也算进 `scrollHeight` ——
+实测 72px/1.1 的「137次」是 client 79 / scroll 87，照搬这条判据会让每个正常文本块
+都报错。行数才是「放不放得下」的答案，墨迹越界交给安全区的像素断言。
+
+估算可以偏保守，但不能替代测量 —— 估算是为了早报错，测量才是最终判据。
