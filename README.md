@@ -164,6 +164,23 @@ IPv4 与高熵令牌。CI 每次都跑，本地跑是为了在 `git add .` 之�
 禁止网络地址与出站客户端（`urllib.request`、`http.client`、`requests` 等），本地时间只允许
 经 `tz.py`，并且只允许 `preview` 一个文件占用端口、必须绑 `127.0.0.1`。CI 每次推送都跑。
 
+`tests/unit/test_offline_egress.py` 进一步在只有 loopback 的网络命名空间里跑完整链路，
+要求 HTML 与联网时逐字节相同；CI 的 `egress-gate` 不允许它被跳过。
+
+发布前生成一份可分享的脱敏版：
+
+```bash
+uvx recapkits redact           # 写 .recapkits/redacted/{insights,story}.json
+uvx recapkits redact --report  # 只审计：计数，TTY 下每类最多 5 个样本
+uvx recapkits redact --render  # 顺手出 recap-<年份>-redacted.html 与 .mp4
+```
+
+它抹结构化 PII（邮箱、电话、URL、IP、坐标、卡号/IBAN、绝对路径）、按 `./redact.txt`
+移除你点名的词、把 Top-5 实体换成稳定假名，并把 id 与占位符一起重写。不推断人名，
+不识别照片，不处理聊天正文；数字与排名仍是真实的，换名字不等于匿名。
+`redactions.json` 是完整的「原名 → 假名」映射，等于原文，不要分享它。
+细节与逐条证据见 [`docs/privacy.md`](docs/privacy.md)。
+
 ## 非目标（v1）
 
 不做托管服务与接收数据的网页；不做账号登录与抓取，只用官方导出与本地文件；不做移动端 App；不做 dashboard；不推断健康状况、精神状态或亲密关系——数据只描述行为，不解释人。
