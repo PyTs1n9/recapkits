@@ -70,7 +70,7 @@
           "display": "62%"
         }
       ],
-      "evidence_sql": "SELECT COALESCE(NULLIF(e.subtitle, ''), NULLIF(e.title, ''), '(未命名)') AS entity, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' GROUP BY entity ORDER BY n DESC, entity ASC",
+      "evidence_sql": "SELECT COALESCE(NULLIF(e.subtitle, ''), NULLIF(e.title, '')) AS entity, COUNT(*) AS n FROM events e JOIN event_local l ON l.event_id = e.id WHERE e.source = 'git' AND l.tz = 'Asia/Shanghai' AND l.local_date BETWEEN '2024-01-01' AND '2024-12-31' AND (NULLIF(e.subtitle, '') IS NOT NULL OR NULLIF(e.title, '') IS NOT NULL) GROUP BY entity ORDER BY n DESC, entity ASC",
       "evidence_rows": 5,
       "score": 0.7045,
       "score_parts": {
@@ -88,7 +88,7 @@
       ],
       "caveats": [
         "窗口 2024-01-01 至 2024-12-31, 覆盖率 13%",
-        "实体口径: 副标题优先, 缺失时退回标题",
+        "实体口径: 副标题优先, 缺失时退回标题; 两者都为空的行不计入",
         "Top-5 按事件数降序, 同数按名称升序"
       ]
     },

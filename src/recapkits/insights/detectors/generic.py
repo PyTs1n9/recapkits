@@ -17,6 +17,10 @@ from recapkits.insights.detectors.common import (
 )
 from recapkits.insights.model import Fact, Insight, Period, Series, day_keys
 
+#: 实体在 id 里的类别词: 让 `conc.top_entity:artist:...` 与 `...:repo:...` 一眼可分。
+#: 只影响新源; git 的 `repo` 是既定 id 的一部分, 不能改。
+ENTITY_KINDS = {"git": "repo", "spotify": "artist", "netflix": "show"}
+
 
 def detect(conn: sqlite3.Connection, *, source: str, period: Period) -> list[Insight]:
     """跑全部检测器, 返回该源的候选洞察(未打分)。"""
@@ -171,10 +175,15 @@ def _conc_top_entity(
     period: Period,
     total_events: int,
 ) -> list[Insight]:
-    """集中度: Top-5 实体与占比; headline 是 top1 的占比。"""
+    """集中度: Top-5 实体与占比; headline 是 top1 的占比。
+
+    标题与副标题都为空的行(例如播客)不进候选: 把它们聚成一个「(未命名)」实体
+    会让「出现最多的项目」变成一句假话。这些行仍然计入总时长与事件数。
+    """
     sql = (
-        "SELECT COALESCE(NULLIF(e.subtitle, ''), NULLIF(e.title, ''), '(未命名)') AS entity, "
-        "COUNT(*) AS n " + scope(source, period) + " GROUP BY entity ORDER BY n DESC, entity ASC"
+        "SELECT COALESCE(NULLIF(e.subtitle, ''), NULLIF(e.title, '')) AS entity, "
+        "COUNT(*) AS n " + scope(source, period) + " AND (NULLIF(e.subtitle, '') IS NOT NULL "
+        "OR NULLIF(e.title, '') IS NOT NULL) GROUP BY entity ORDER BY n DESC, entity ASC"
     )
     rows = conn.execute(sql).fetchall()
     if not rows:
@@ -188,7 +197,7 @@ def _conc_top_entity(
     ]
     facts.append(Fact("share", "占全部事件的比重", round(top_share, 4), "pct", f"{top_share:.0%}"))
 
-    entity_kind = "repo" if source == "git" else "entity"
+    entity_kind = ENTITY_KINDS.get(source, "entity")
     return [
         make_insight(
             ident=(
@@ -206,7 +215,7 @@ def _conc_top_entity(
             signal=scoring.signal_top_entity(top_share),
             caveats=standard_caveats(
                 period,
-                "实体口径: 副标题优先, 缺失时退回标题",
+                "实体口径: 副标题优先, 缺失时退回标题; 两者都为空的行不计入",
                 "Top-5 按事件数降序, 同数按名称升序",
             ),
         )
