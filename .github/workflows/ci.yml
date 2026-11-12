@@ -27,12 +27,16 @@ jobs:
       - run: uv run pytest -q
 
       # 硬规则 1、4 的断言在 tests/unit/test_core_is_offline.py，由上面的 pytest 执行。
-      # 这里曾经并存一份 shell grep：它扫整个 src/，被 assets/fonts 的 OFL 许可证判红，
-      # 而两套实现迟早会各自漂移。规则只留一处实现，范围由测试自己钉死（.py / .mjs）。
+      # 这里曾经并存一份 `! grep` 的 shell 版：`set -e` 对状态被 `!` 取反的命令不生效，
+      # 它从来没有真正拦过东西（字体许可证只是让这个空洞显形）。一条规则只留一处实现。
 
       # 真实导出永不进 git：入库路径的文件名拦截 + fixtures 的 PII/熵扫描。
       # 提交者不会恶意夹带，问题出在 `git add .` 上；这一步让它在合并前失败。
       - name: guard-exports
+        env:
+          # Windows runner 是 en-US 代码页。这个变量让中文提示按 UTF-8 写进日志,
+          # 便于阅读; 脚本自身另有 backslashreplace 兜底, 不依赖它也能跑完。
+          PYTHONIOENCODING: utf-8
         run: uv run python scripts/guard-exports.py
 
   # render 测试用 skipif(needs_node): 无 node 的环境会全部跳过而仍然"全绿"。

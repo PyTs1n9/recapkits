@@ -6,6 +6,9 @@
 """
 
 import importlib.util
+import os
+import subprocess
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -66,3 +69,23 @@ def test_field_names_are_not_tokens() -> None:
     """长字段名熵也接近 3.4, 但它没有数字、没有大小写混排, 不能误判。"""
     assert guard.scan_text("master_metadata_album_album_name") == []
     assert guard.scan_text("spotify:track:4uLU6hMCjMI75M1A2tKUQC") == []
+
+
+def test_runs_under_a_narrow_console_encoding() -> None:
+    """Windows runner 是 en-US 代码页: 打印中文不能让检查本身崩掉。
+
+    这条是真实事故的回归: 脚本在 cp1252 控制台上打印中文成功行时抛
+    `UnicodeEncodeError`, CI 三个 Windows job 全部变红 —— 一个"发现问题"的
+    步骤, 因为一句提示把自己变成了问题。
+    """
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+    completed = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "guard-exports.py")],
+        capture_output=True,
+        env=env,
+        cwd=ROOT,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr.decode("cp1252", errors="replace")
+    assert b"Traceback" not in completed.stderr

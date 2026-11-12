@@ -115,6 +115,20 @@ def _fixtures(root: Path) -> list[Path]:
     return sorted(path for path in directory.rglob("*") if path.is_file())
 
 
+def _tolerate_narrow_console() -> None:
+    """控制台编码装不下中文时降级, 而不是让一条提示把检查本身弄崩。
+
+    Windows 的 CI runner 是 en-US 代码页 (cp1252), 打印中文会抛
+    `UnicodeEncodeError` —— 守卫脚本以退出码 1 结束, 看起来像"发现了违规",
+    实际只是最后一行提示打不出来。真有违规时更糟: 日志里只剩 traceback。
+    `backslashreplace` 把装不下的字变成 `\\uXXXX`, 信息不丢, 进程不崩。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(errors="backslashreplace")
+
+
 def check(root: Path = ROOT) -> list[str]:
     """跑全部检查, 返回违规行; 空列表代表干净。"""
     problems: list[str] = []
@@ -132,6 +146,7 @@ def check(root: Path = ROOT) -> list[str]:
 
 
 def main() -> int:
+    _tolerate_narrow_console()
     problems = check()
     if problems:
         for problem in problems:
