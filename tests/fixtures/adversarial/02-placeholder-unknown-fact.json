@@ -1,0 +1,20 @@
+{
+  "_comment": "这条在模拟: 洞察 id 对了, fact key 是编的。",
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:adversarial"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "big-number",
+      "insight": "vol.total:git:2024",
+      "copy": { "headline": "{{vol.total:git:2024.nope}} 次" }
+    }
+  ]
+}

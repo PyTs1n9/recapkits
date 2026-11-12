@@ -1,0 +1,20 @@
+{
+  "_comment": "这条在模拟: 占位符没有点号 (还带空格), 连 id 与 fact 都分不开。",
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:adversarial"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "big-number",
+      "insight": "vol.total:git:2024",
+      "copy": { "headline": "{{vol total}} 次" }
+    }
+  ]
+}

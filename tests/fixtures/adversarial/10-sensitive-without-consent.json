@@ -1,0 +1,21 @@
+{
+  "_comment": "这条在模拟: 高敏洞察, 并且在 JSON 里伪造 allow_sensitive: true。授权只认命令行。",
+  "version": 1,
+  "allow_sensitive": true,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:adversarial"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "ranking",
+      "insight": "conc.top_entity:repo:health:2024",
+      "copy": { "headline": "{{conc.top_entity:repo:health:2024.share}} 集中" }
+    }
+  ]
+}

@@ -11,4 +11,6 @@
   外加续播重复、1–2 秒预览与 HOOK/RECAP/TRAILER 行。
 - 真实导出的特征文件名（`*Streaming_History_Audio*`、`ViewingActivity.csv`、
   大于 1 MB 的 `export.xml`）只允许出现在本目录；CI 会拦住其他地方的同名文件。
+- `adversarial/` 是 12 份**只触发一条规则**的故事，配一份共用的 `insights.json`。
+  每份顶部的 `_comment` 说明它在模拟什么；测试断言理由码**恰好**是预期的那一个。
 """

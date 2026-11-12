@@ -1,0 +1,20 @@
+{
+  "_comment": "这条在模拟: 全角数字。肉眼像数字, 正则也要当数字拦。",
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:adversarial"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "big-number",
+      "insight": "vol.total:git:2024",
+      "copy": { "headline": "共 １２３４ 次" }
+    }
+  ]
+}

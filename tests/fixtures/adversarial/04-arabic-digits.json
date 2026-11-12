@@ -1,0 +1,20 @@
+{
+  "_comment": "这条在模拟: 手写阿拉伯数字, 而不是用占位符引用事实。",
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:adversarial"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "big-number",
+      "insight": "vol.total:git:2024",
+      "copy": { "headline": "共 1234 次提交" }
+    }
+  ]
+}

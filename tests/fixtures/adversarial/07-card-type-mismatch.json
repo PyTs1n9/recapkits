@@ -1,0 +1,20 @@
+{
+  "_comment": "这条在模拟: clock 卡引用 vol.total。卡型与洞察类型不兼容, 序列检查还没轮到。",
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:adversarial"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "clock",
+      "insight": "vol.total:git:2024",
+      "copy": { "headline": "深夜节律" }
+    }
+  ]
+}

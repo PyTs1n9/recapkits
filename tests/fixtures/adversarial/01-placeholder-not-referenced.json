@@ -1,0 +1,20 @@
+{
+  "_comment": "这条在模拟: 占位符引用了一条存在的洞察, 但本卡没把它写进 insight / evidence, 数字无法从证据链复算。",
+  "version": 1,
+  "meta": {
+    "year": 2024,
+    "locale": "zh-CN",
+    "theme": "neon",
+    "tone": "deadpan",
+    "tz": "Asia/Shanghai",
+    "build_id": "b3:adversarial"
+  },
+  "cards": [
+    {
+      "id": "c1",
+      "type": "big-number",
+      "insight": "vol.total:git:2024",
+      "copy": { "headline": "{{conc.top_entity:repo:%e9%be%98-repo:2024.share}} 的提交" }
+    }
+  ]
+}
