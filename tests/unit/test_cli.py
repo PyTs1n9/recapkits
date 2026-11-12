@@ -136,9 +136,7 @@ def test_import_auto_refuses_ambiguous_directory(
     assert "--source" in err
 
 
-def test_import_prints_a_ledger_for_every_file(
-    tmp_path: Path, monkeypatch, capsys
-) -> None:
+def test_import_prints_a_ledger_for_every_file(tmp_path: Path, monkeypatch, capsys) -> None:
     """逐文件账必须能查: 文件名、解析数、跳过数与原因。"""
     monkeypatch.chdir(tmp_path)
     main(["init", "--year", "2024"])
