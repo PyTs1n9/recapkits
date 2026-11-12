@@ -17,7 +17,8 @@
   height: 3px;
   margin-top: 44px;
   background: var(--skin-accent);
-  border-radius: 2px;
+  /* 方端, 不用圆角: 3px 高的条上 2px 圆角的抗锯齿会往左溢出 1px, 落进 72px 安全区。
+   * 底栏与细分隔线也都是方端, 这里保持一致比保留一个看不见的圆角更重要。 */
 }
 
 .cover__sub {

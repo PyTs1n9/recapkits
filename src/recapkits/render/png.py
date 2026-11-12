@@ -9,6 +9,12 @@
 3. **截图前等三件事**: 字体就绪、两帧 rAF、页面上的 `data-render-ready` 标记。缺一样
    都可能拍到回退字体或半成品布局。
 
+**启动参数是可复现截图的前提, 不是性能调优。** `--disable-gpu` / `--disable-lcd-text`
+/ `--font-render-hinting=none` / `--force-color-profile=srgb` /
+`--disable-partial-raster` / `--disable-skia-runtime-opts` / `--hide-scrollbars`
+一起把"这台机器的显卡、字体微调、色彩配置"三个变量从画面里拿掉。少一个, 同一份 HTML
+两次渲染的 sha256 就可能不同, 而 MP4 的每一帧都是这些截图的复用。
+
 Playwright 是可选依赖 (`uv sync --extra png`): 只出 HTML 的用户不需要它, 也就不会为
 一个 40 MB 的包付出安装成本。缺失时给出可操作的错误, 而不是 ImportError。
 """
@@ -31,6 +37,31 @@ BROWSER_CHANNELS = ("chrome", "msedge")
 
 #: 舞台尺寸; 视口必须与它一致, 缩放才是 1。
 VIEWPORTS = {"9:16": (1080, 1920), "4:5": (1080, 1350)}
+
+#: 截图用的启动参数; 见模块头的三条约束。顺序固定, 便于比对日志。
+LAUNCH_ARGS = (
+    "--disable-gpu",
+    "--disable-lcd-text",
+    "--font-render-hinting=none",
+    "--force-color-profile=srgb",
+    "--disable-partial-raster",
+    "--disable-skia-runtime-opts",
+    "--hide-scrollbars",
+)
+
+#: 截图前把舞台钉在 (0,0)。视口里的滚动条会让 translate(-50%) 落在半像素上,
+#: 而截图矩形必须取整 —— 半像素进画面, 两次渲染的像素网格就差半格。
+STAGE_FIX_CSS = """
+html, body { overflow: hidden !important; }
+.deck { overflow: hidden !important; scrollbar-width: none !important; }
+.deck::-webkit-scrollbar { display: none !important; }
+.stage {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+}
+"""
 
 BUNDLED_HINT = "playwright install chromium 会再下载约 150 MB 的浏览器"
 
@@ -93,15 +124,18 @@ def _sync_playwright() -> Any:
 
 
 def _launch(playwright: Any) -> tuple[Any, str | None]:
-    """按 chrome → msedge → 自带 chromium 的顺序找一个能用的浏览器。"""
+    """按 chrome → msedge → 自带 chromium 的顺序找一个能用的浏览器。
+
+    参数对所有候选一致: 换浏览器是回退, 不该顺带换掉渲染条件。
+    """
     failures: list[str] = []
     for channel in BROWSER_CHANNELS:
         try:
-            return playwright.chromium.launch(channel=channel), channel
+            return playwright.chromium.launch(channel=channel, args=list(LAUNCH_ARGS)), channel
         except Exception as exc:  # 只要失败就换下一个
             failures.append(f"{channel}: {str(exc).splitlines()[0]}")
     try:
-        return playwright.chromium.launch(), None
+        return playwright.chromium.launch(args=list(LAUNCH_ARGS)), None
     except Exception as exc:
         failures.append(f"自带 chromium: {str(exc).splitlines()[0]}")
     detail = "\n".join(f"  {line}" for line in failures)
@@ -152,6 +186,15 @@ def render_pngs(html: str, *, aspect: str, out_dir: Path, year: int) -> PngRepor
                     raise RecapError("页面里没有 .stage: 故事没有卡片")
                 for index in range(count):
                     stage = page.locator(".stage").nth(index)
+                    box = stage.bounding_box()
+                    if box is None:
+                        raise RecapError(f"第 {index + 1} 张卡取不到包围盒")
+                    if box["x"] != int(box["x"]) or box["y"] != int(box["y"]):
+                        # 半像素进画面, 两次渲染的像素网格就差半格, sha256 必然不同。
+                        raise RecapError(
+                            f"第 {index + 1} 张卡的舞台没有落在整数像素上: "
+                            f"({box['x']}, {box['y']}); 检查视口宽度与滚动条"
+                        )
                     raw = Path(tmp) / f"{index:02d}.png"
                     stage.screenshot(path=str(raw), animations="disabled")
                     data = strip_text_chunks(raw.read_bytes())

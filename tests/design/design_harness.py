@@ -25,12 +25,12 @@ SAFE_TOP = 240
 SAFE_BOTTOM = 240
 SAFE_SIDE = 72
 
-#: 左右边带向内收 6px。平台间的字体 bearing / 抗锯齿 / 滚动条宽度会让贴在
-#: 72px 内容边界上的文字墨迹溢出: Linux runner 实测最左到 x=68 (ΔE 20.1),
-#: 固定舞台几何后仍有 4px, Windows 本地最大只有 1.05。这是 CJK 回退字体配合
-#: 负 letter-spacing 的渲染噪声, 不是设计缺陷; 变异验证: 侵入 10px 断言仍失败。
-#: 阶段 7 引入随包字体后各平台字形统一, 这个容差应收回 0。
-SAFE_BAND_TOLERANCE = 6
+#: 左右边带不再向内收。6px 是系统 CJK 回退字体时代的临时方案: Linux runner 的
+#: 字体 bearing 与 Windows 不同, 贴边墨迹最左到过 x=68。阶段 7 把两套字体随包内联
+#: 之后, 两个平台读的是同一份字形, 差异的前提消失, 容差收回 0。
+#: 变异验证: 给 ranking 注入 padding-left: 71px (侵入 1px), `pytest -m design`
+#: 必须失败并报出 ΔE; 恢复后必须全绿。0 的容差如果拦不住 1px, 它就是假的。
+SAFE_BAND_TOLERANCE = 0
 
 #: 超过 48px 的字按"大字号"算 (WCAG 3:1), 其余 4.5:1。
 LARGE_TEXT_PX: float = 48
@@ -103,6 +103,9 @@ def capture(page: Any, *, aspect: str) -> CardShot:
     """在当前页面上量一张卡并截三张图; 页面应当只放一张卡。"""
     page.evaluate("document.documentElement.style.setProperty('--stage-scale', '1')")
     page.add_style_tag(content=STAGE_FIX_CSS)
+    # 字体就绪必须显式等: 随包字体是 font-display: block, 在它加载完之前量到的是
+    # 回退字体的行盒, 而回退字体正是这套断言要消灭的变量。
+    page.evaluate("document.fonts.ready")
     page.wait_for_selector('html[data-render-ready="1"]', state="attached")
 
     stage = page.locator(".stage").first

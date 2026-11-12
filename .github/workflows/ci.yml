@@ -63,6 +63,30 @@ jobs:
       - run: uv sync --extra png
       - run: uv run playwright install --with-deps chromium
 
+      # 字体产物与 manifest 必须一致; --check 不下载, 只用提交进仓库的哈希。
+      - name: font-manifest
+        run: uv run python scripts/build-fonts.py --check
+
+      # 字体内联: 两段 @font-face、零外链、体积 <= 2.6 MB。
+      - name: font-in-html
+        run: |
+          set -euo pipefail
+          uv run pytest -q tests/unit/test_fonts_bundled.py -rs | tee fonts.log
+          if grep -q "skipped" fonts.log; then
+            echo "字体断言被跳过: node / renderer assets 缺失" >&2
+            exit 1
+          fi
+
+      # MP4 的每一帧都是这些截图的复用; 两次渲染必须逐字节相同。
+      - name: png-deterministic
+        run: |
+          set -euo pipefail
+          uv run pytest -q tests/unit/test_render_png_deterministic.py -rs | tee png.log
+          if grep -q "skipped" png.log; then
+            echo "PNG 确定性测试被跳过: 浏览器缺失" >&2
+            exit 1
+          fi
+
       - name: render-tests-must-not-skip
         run: |
           set -euo pipefail
