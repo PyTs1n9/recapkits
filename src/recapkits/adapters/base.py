@@ -46,6 +46,7 @@ class IngestReport:
     first_ts: str | None
     last_ts: str | None
     src_hash: str
+    unit: str = "文件"
     coverage: float | None = None
     warnings: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)

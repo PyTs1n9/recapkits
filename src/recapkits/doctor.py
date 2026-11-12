@@ -13,6 +13,7 @@ import sys
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from recapkits import __version__
+from recapkits.commands import ADAPTERS
 from recapkits.db import connect, count_events, init_schema, list_sources
 from recapkits.render.ffmpeg import MIN_FFMPEG, ffmpeg_info
 from recapkits.render.node import MIN_NODE_MAJOR, node_info
@@ -68,6 +69,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     except ZoneInfoNotFoundError:
         print("时区数据   缺失; Windows 需要 tzdata")
 
+    print(f"适配器     auto / {' / '.join(ADAPTERS)}")
+
     workspace = load_workspace()
     if workspace is None:
         print("workspace  未初始化; 先运行 recap init")
@@ -88,4 +91,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     print(f"events     {len(sources)} 个源, {total:,} 条事件")
     for name, count in sources:
         print(f"           {name}  {count:,}")
+    counts = dict(sources)
+    detail = "  ".join(f"{name} {counts.get(name, 0):,}" for name in ADAPTERS)
+    print(f"按适配器   {detail}")
     return 0

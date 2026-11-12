@@ -195,5 +195,6 @@ class GitAdapter:
             src_hash=hashlib.sha256(
                 "\n".join(sorted(event.row_hash for event in events)).encode()
             ).hexdigest()[:16],
+            unit="仓库",
             warnings=warnings,
         )

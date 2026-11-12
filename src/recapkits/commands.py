@@ -91,7 +91,7 @@ def _ledger_line(ledger: FileLedger) -> str:
 
 def _print_report(report: IngestReport, added: int, start: str, end: str) -> None:
     """打印导入报告: 只有计数与时间, 没有任何数据内容。"""
-    unit = "仓库" if report.source == "git" else "文件"
+    unit = report.unit
     print(f"源        {report.source}")
     print(f"扫描      {report.units} 个{unit}")
     print(f"解析      {report.rows:,} 条")
@@ -173,7 +173,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     )
     ensure_gitignore()
     print(f"已创建工作区 {root} (tz={args.tz}, year={year})")
-    print("下一步: recap import <导出目录>  (自动识别 git / spotify, 或用 --source 指定)")
+    print(f"下一步: recap import <导出目录>  (自动识别 {' / '.join(ADAPTERS)}, 或用 --source 指定)")
     return 0
 
 
