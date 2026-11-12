@@ -25,11 +25,12 @@ SAFE_TOP = 240
 SAFE_BOTTOM = 240
 SAFE_SIDE = 72
 
-#: 左右边带向内收 3px。平台间的字体 bearing / 抗锯齿 / 滚动条宽度会让贴在
-#: 72px 内容边界上的文字墨迹溢出 1-2px: Linux runner 实测 x=70/71 处 ΔE 90+,
-#: Windows 本地最大只有 1.05。这是渲染噪声, 不是设计缺陷; 收 3px 后仍能抓到
-#: 真正越界的图形 (heatmap 那次 70px 外阴影漏进右带, 漏了整整 70px)。
-SAFE_BAND_TOLERANCE = 3
+#: 左右边带向内收 6px。平台间的字体 bearing / 抗锯齿 / 滚动条宽度会让贴在
+#: 72px 内容边界上的文字墨迹溢出: Linux runner 实测最左到 x=68 (ΔE 20.1),
+#: 固定舞台几何后仍有 4px, Windows 本地最大只有 1.05。这是 CJK 回退字体配合
+#: 负 letter-spacing 的渲染噪声, 不是设计缺陷; 变异验证: 侵入 10px 断言仍失败。
+#: 阶段 7 引入随包字体后各平台字形统一, 这个容差应收回 0。
+SAFE_BAND_TOLERANCE = 6
 
 #: 超过 48px 的字按"大字号"算 (WCAG 3:1), 其余 4.5:1。
 LARGE_TEXT_PX: float = 48

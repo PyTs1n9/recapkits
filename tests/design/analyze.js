@@ -39,8 +39,8 @@ async (payload) => {
 
   const { w, h } = card;
   const A = card.data, B = blank.data;
-  // 左右边带按 sideTolerance 向内收: 只排除贴边 1-2px 的抗锯齿噪声,
-  // 上下边带不动, 真正的越界图形仍然会被逐像素抓到。
+  // 左右边带按 sideTolerance 向内收: 只排除跨平台字体 bearing 造成的贴边
+  // 几像素墨迹, 上下边带不动, 真正的越界图形仍然会被逐像素抓到。
   const side = payload.safeSide - (payload.sideTolerance || 0);
   const bands = [
     { name: 'top', x0: 0, x1: w, y0: 0, y1: payload.safeTop },
