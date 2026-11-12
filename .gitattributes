@@ -1,0 +1,6 @@
+# 渲染器源码以 ?raw / 模板字符串的形式打进 cli.mjs, assets/ 里的 cli.mjs 入库。
+# 若 checkout 成 CRLF, Windows 与 Linux 构建的 bundle 字节不同, CI 的
+# sync-renderer --check 会失败 (2026-11-12 的 11 个红 check 之一)。
+# 这两个目录在所有平台都用 LF, 与 style.ts 里的 normalize 互为双保险。
+renderer/src/** text eol=lf
+src/recapkits/render/assets/** text eol=lf

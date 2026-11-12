@@ -39,11 +39,14 @@ async (payload) => {
 
   const { w, h } = card;
   const A = card.data, B = blank.data;
+  // 左右边带按 sideTolerance 向内收: 只排除贴边 1-2px 的抗锯齿噪声,
+  // 上下边带不动, 真正的越界图形仍然会被逐像素抓到。
+  const side = payload.safeSide - (payload.sideTolerance || 0);
   const bands = [
     { name: 'top', x0: 0, x1: w, y0: 0, y1: payload.safeTop },
     { name: 'bottom', x0: 0, x1: w, y0: h - payload.safeBottom, y1: h },
-    { name: 'left', x0: 0, x1: payload.safeSide, y0: 0, y1: h },
-    { name: 'right', x0: w - payload.safeSide, x1: w, y0: 0, y1: h },
+    { name: 'left', x0: 0, x1: side, y0: 0, y1: h },
+    { name: 'right', x0: w - side, x1: w, y0: 0, y1: h },
   ];
   let worst = { de: 0, x: 0, y: 0, band: 'none' };
   for (const band of bands) {

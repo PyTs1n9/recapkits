@@ -13,6 +13,7 @@ Playwright 是可选依赖 (`uv sync --extra png`): 只出 HTML 的用户不需�
 一个 40 MB 的包付出安装成本。缺失时给出可操作的错误, 而不是 ImportError。
 """
 
+import importlib
 import struct
 import tempfile
 from dataclasses import dataclass
@@ -76,15 +77,19 @@ def image_size(data: bytes) -> tuple[int, int]:
 
 
 def _sync_playwright() -> Any:
-    """延迟导入: 只出 HTML 的用户不该因为缺 Playwright 而跑不起来。"""
+    """延迟导入: 只出 HTML 的用户不该因为缺 Playwright 而跑不起来。
+
+    走 importlib 而不是字面 import: playwright 是可选依赖, CI 的 test job 只装
+    `uv sync`, 字面静态导入会让 pyright 报 reportMissingImports 而整条 check 变红。
+    """
     try:
-        from playwright.sync_api import sync_playwright
+        module = importlib.import_module("playwright.sync_api")
     except ImportError as exc:  # pragma: no cover - 取决于安装环境
         raise RecapError(
             "PNG 输出需要 Playwright: 先装可选依赖 (uv sync --extra png)。\n"
             "只出 HTML 的话不需要它: recap render --format html"
         ) from exc
-    return sync_playwright
+    return module.sync_playwright
 
 
 def _launch(playwright: Any) -> tuple[Any, str | None]:

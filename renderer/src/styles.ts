@@ -14,6 +14,11 @@ import rankingCss from "./cards/ranking.css?raw";
 import summaryGridCss from "./cards/summary-grid.css?raw";
 import tokensCss from "./tokens.css?raw";
 
+// ?raw 把文件字节原样带进 bundle。Windows 的 core.autocrlf 会把 checkout 变成 CRLF,
+// 于是同一份源码在 Windows 与 Linux 构建出的 cli.mjs 哈希不同, CI 的
+// sync-renderer --check 必然红。装配前统一成 LF, 构建就与平台无关。
+const normalize = (css: string) => css.replace(/\r\n/g, "\n");
+
 export const STYLES = [
   tokensCss,
   baseCss,
@@ -24,4 +29,4 @@ export const STYLES = [
   heatmapCss,
   clockCss,
   summaryGridCss,
-].join("\n");
+].map(normalize).join("\n");

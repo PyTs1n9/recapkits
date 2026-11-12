@@ -14,8 +14,7 @@
 import base64
 from dataclasses import dataclass
 from pathlib import Path
-
-from playwright.sync_api import Locator, Page
+from typing import Any
 
 HERE = Path(__file__).parent
 MEASURE_JS = (HERE / "measure.js").read_text(encoding="utf-8")
@@ -26,10 +25,32 @@ SAFE_TOP = 240
 SAFE_BOTTOM = 240
 SAFE_SIDE = 72
 
+#: 左右边带向内收 3px。平台间的字体 bearing / 抗锯齿 / 滚动条宽度会让贴在
+#: 72px 内容边界上的文字墨迹溢出 1-2px: Linux runner 实测 x=70/71 处 ΔE 90+,
+#: Windows 本地最大只有 1.05。这是渲染噪声, 不是设计缺陷; 收 3px 后仍能抓到
+#: 真正越界的图形 (heatmap 那次 70px 外阴影漏进右带, 漏了整整 70px)。
+SAFE_BAND_TOLERANCE = 3
+
 #: 超过 48px 的字按"大字号"算 (WCAG 3:1), 其余 4.5:1。
 LARGE_TEXT_PX: float = 48
 
 VIEWPORTS = {"9:16": (1080, 1920), "4:5": (1080, 1350)}
+
+#: 截图时锁死舞台几何。视口里一旦出现垂直滚动条 (宽度随平台而变), .stage 的
+#: translate(-50%) 居中就会左移 1-2px, 72px 安全区里的内容因而落进 left 边带:
+#: Linux runner 上六张卡两比例都报 x=70/71 处 ΔE 90+, Windows 本地最大仅 1.05。
+#: 测量页只有一张卡, 固定到 (0,0) 消除居中舍入, 舞台内部的真实布局不变。
+STAGE_FIX_CSS = """
+html, body { overflow: hidden !important; }
+.deck { overflow: hidden !important; scrollbar-width: none !important; }
+.deck::-webkit-scrollbar { display: none !important; }
+.stage {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+}
+"""
 
 
 @dataclass(frozen=True)
@@ -73,13 +94,14 @@ def data_url(png: bytes) -> str:
     return "data:image/png;base64," + base64.b64encode(png).decode("ascii")
 
 
-def _shoot(stage: Locator) -> bytes:
+def _shoot(stage: Any) -> bytes:
     return stage.screenshot(animations="disabled")
 
 
-def capture(page: Page, *, aspect: str) -> CardShot:
+def capture(page: Any, *, aspect: str) -> CardShot:
     """在当前页面上量一张卡并截三张图; 页面应当只放一张卡。"""
     page.evaluate("document.documentElement.style.setProperty('--stage-scale', '1')")
+    page.add_style_tag(content=STAGE_FIX_CSS)
     page.wait_for_selector('html[data-render-ready="1"]', state="attached")
 
     stage = page.locator(".stage").first
@@ -122,7 +144,7 @@ def capture(page: Page, *, aspect: str) -> CardShot:
     )
 
 
-def analyze(analyzer: Page, shot: CardShot) -> dict:
+def analyze(analyzer: Any, shot: CardShot) -> dict:
     """在分析页里算一张卡的安全区色差与每处文字的背景像素。"""
     payload = {
         "card": data_url(shot.normal),
@@ -131,6 +153,7 @@ def analyze(analyzer: Page, shot: CardShot) -> dict:
         "safeTop": SAFE_TOP,
         "safeBottom": SAFE_BOTTOM,
         "safeSide": SAFE_SIDE,
+        "sideTolerance": SAFE_BAND_TOLERANCE,
         "boxes": [
             {"slot": slot.slot, "x": slot.x, "y": slot.y, "w": slot.width, "h": slot.height}
             for slot in shot.slots
