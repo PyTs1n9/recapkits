@@ -90,8 +90,13 @@
 格式 `{{<insight_id>.<fact_key>}}`，按**最后一个点**切分。
 
 洞察 id 本身可能含点、冒号和连字符（例如 `vol.total:git:2024`、
-`disc.longest_gap:git:2024:2024-03-10`），因此校验器接受 `[a-z0-9_.:-]` 的 id 片段。
+`disc.longest_gap:git:2024:2024-03-10`），因此校验器接受 `[a-z0-9_.:%-]` 的 id 片段。
 连字符是阶段 5b 补进来的：`disc.*` 的 id 带日期，少了它这类洞察永远无法被引用。
+
+`conc.*` 的 id 里有一段来自用户的实体名（仓库目录名）。它在拼接前会按 UTF-8 字节转义，
+只保留 `[a-z0-9_-]`，其余写成 `%xx`：中文仓库名 `龘-repo` 得到
+`conc.top_entity:repo:%e9%be%98-repo:2024`。转义是可逆且单射的，因此中文、大写字母、
+空格、点号都不会让洞察"算得出来但引不到"；展示用的原名在 `facts[].label` 里，不受影响。
 
 `fact_key` 必须在该洞察的 `headline_fact` 或 `facts[].key` 里存在。
 
@@ -112,6 +117,44 @@ V2 的放行项：年份 `(19|20)\d{2}`、序数（`第三`）、以及「一天
 每条错误都给出 `code`、`card_index`、`slot`、`got`、`expected`、`hint`。`hint` 不是装饰：
 写 skill 的 agent 通常只有一次修复机会。
 
+## `--auto` 生成的故事
+
+`recap story --auto` 从 `insights.json` 的**已选列表**（`select()` 已经截断并附回
+`vol.daily_series`）规划一份故事，不再自己重排、不再重算分数 —— 两套排序必然漂移。
+
+**卡片顺序固定：** `cover → big-number → ranking → heatmap → clock → summary`。卡片 id
+用语义名而不是 `c1..c6`，因为它们会出现在渲染器的报错里。跳过一张卡必须打印理由
+（闸门关闭 / 数据不足 / `--top` 截断），不静默消失：
+
+| 卡型 | 需要的洞察 | 缺失时的理由 |
+|---|---|---|
+| `cover` / `big-number` | `vol.total` | 没有 `vol.total`：先跑 `recap import` |
+| `ranking` | `conc.top_entity` | 事件不足 50 条时不出集中度 |
+| `heatmap` | `vol.daily_series` | 工作区没有事件，或数据不足时它与其余洞察一起被闸门关闭 |
+| `clock` | `time.hour_rhythm` | 活跃日不足 30 天时被闸门关闭 |
+| `summary-grid` | 至少 3 条可引洞察 | `--top` 太小，或数据源太少 |
+
+`vol.total` 完全没有时不是"跳过"，是**报错**：一个只有空故事的工作区不该产出文件。
+`summary-grid` 的 `evidence` 只引用前面真的画出来的卡，且不含 `vol.daily_series`（它的
+facts 是"窗口天数"，放进总览是噪声）。
+
+**模板只允许三种成分：** CJK 文案、`{{id.fact}}` 占位符、年份字面量。去掉占位符与年份
+之后不得出现 `[0-9A-Za-z]` —— 一条测试遍历全部模板就能同时守住 V2 与 V6，不用逐条背
+规则。同理，模板里不写"前三""前五"这类序数：它们现在只是靠 `CHINESE_NUMBER` 缺量词才
+漏过去，规则一收紧就翻脸。
+
+**自动生成的故事同样要过 `--check`。** 生成后立刻 `Story.from_dict` →
+`validate_story(allow_sensitive=False)`，零错误才写盘；有错就打印 `format_errors` 并退出
+1，不留下半成品 —— 写出坏 `story.json` 只会把失败推迟到 render，用户会看到两条互相矛盾
+的错误。
+
+**不覆盖手写故事：** `story.json` 已存在时拒绝，除非 `--force`。**高敏洞察不自动使用：**
+`sensitivity == "high"` 直接跳过，理由写「需要 --allow-sensitive」—— 自动生成的文案不该
+替用户做授权决定。
+
+`recap <路径>` 在缺故事时调用同一个规划器，然后直接渲染 HTML；`--no-auto` 保留旧行为
+（只到 insights 为止）。
+
 ## 命令行
 
 ```bash
@@ -120,13 +163,20 @@ recap story --check story.json --allow-sensitive                # 用户显式�
 recap story --check story.json --allow-unknown-names            # 放行实体表外的名字
 recap story --check story.json --insights path/to/insights.json # 指定数据源
 
+recap story --auto                                              # 自动规划到 .recapkits/story.json
+recap story --auto --out story.json --force                      # 指定路径并覆盖
+recap story --auto --year 2025 --theme neon --tone deadpan       # 换年份 / 主题 / 语气
+
 recap insights --md                                            # 同时写 insights.json 与 insights.md
 recap insights --no-md                                         # 只写 JSON
 recap insights --payload-preview                               # 报出含/不含 series 的字节差
 recap render --format html --aspect 9:16                        # 出单文件 HTML
-recap render --format png --aspect 4:5                          # 逐卡 PNG 到 out/cards/
+recap render --format png --aspect 4:5                          # 逐卡 PNG 到 out/cards-4x5/
+recap render --format mp4 --aspect 9:16                         # 出 MP4, 需要 ffmpeg 5.1+
 recap preview                                                   # 本地预览, 改文件自动刷新
 ```
+
+`--check` 与 `--auto` 互斥且必选其一。
 
 `insights.json` 的查找顺序：`--insights` → 故事文件同目录的 `insights.json`
 → 当前工作区 `.recapkits/out/insights.json`。同目录优先，是为了让 fixture 自成一体。
@@ -147,6 +197,12 @@ recap preview                                                   # 本地预览, 
 两个比例分开目录，是因为图名不含比例，同一目录会互相覆盖。截图要等字体就绪、两帧绘制与页面上的 `data-render-ready` 标记，
 视口与舞台同尺寸、缩放固定为 1，否则像素对不上设计稿（见
 [`docs/decisions/0002-render-pipeline.md`](decisions/0002-render-pipeline.md) 的决定四）。
+
+`--format mp4` 复用同一批截图：动画只在采集时由 `data-motion="on"` 打开，帧状态由
+`currentTime` 驱动；六张卡约 24s / 729 帧，写到 `.recapkits/out/recap-<年份>.mp4`
+（4:5 为 `recap-<年份>-4x5.mp4`）。`--out` 在这里是**文件**，与 PNG 的目录语义相反；
+`--fps` 默认 30。ffmpeg 是系统依赖，缺失时在读 `story.json` 之前退出。
+详见 [`docs/decisions/0002-render-pipeline.md`](decisions/0002-render-pipeline.md) 的决定六。
 
 ## 长度预算
 
