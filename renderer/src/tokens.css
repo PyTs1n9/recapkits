@@ -13,30 +13,68 @@
  */
 
 :root {
-  --col: 56px; --gutter: 24px; --margin: 72px;
-  --safe-top: 240px; --safe-bottom: 240px;
-  --fs-display: 320px; --fs-h1: 220px; --fs-h2: 140px;
-  --fs-lead: 88px; --fs-body: 56px; --fs-caption: 40px; --fs-micro: 28px;
+  /* 栅格与安全区 */
+  --col: 56px;
+  --gutter: 24px;
+  --margin: 72px;
+  --safe-top: 240px;
+  --safe-bottom: 240px;
+
+  /* 字阶 */
+  --fs-display: 320px;
+  --fs-h1: 220px;
+  --fs-h2: 140px;
+  --fs-lead: 88px;
+  --fs-body: 56px;
+  --fs-caption: 40px;
+  --fs-micro: 28px;
+
+  /* 版面骨架: 抬头 (kicker/标题/副标题) 的固定节奏, 六张卡共用 */
+  --head-gap: 36px;
+  --rule-gap: 24px;
+  --sub-gap: 22px;
+  --body-gap: 64px;
+
   --track-tight: -0.025em;
+  --track-wide: 0.22em;
+
   /* 巨型数字的视觉底边补偿。line-height 0.9 是几何, 0.12em 是字体相关的修正:
    * 行盒底落在安全区下沿时, CJK 字形仍会向下溢出。换字体后只重测这一个值,
    * 由阶段 6c 的安全区断言验证, 不需要肉眼比对。 */
   --display-baseline-shift: 0.12em;
-  --dur-fast: 160ms; --dur-mid: 400ms; --dur-slow: 700ms;
+
+  /* 表面与线条: 层次靠这几层叠出来, 而不是靠更多颜色 */
+  --skin-surface: rgba(255, 255, 255, 0.045);
+  --skin-surface-strong: rgba(255, 255, 255, 0.075);
+  --skin-hairline: rgba(255, 255, 255, 0.1);
+  --skin-hairline-strong: rgba(255, 255, 255, 0.18);
+  --skin-accent-soft: rgba(198, 255, 61, 0.12);
+  --skin-accent-line: rgba(198, 255, 61, 0.55);
+
+  --radius-panel: 28px;
+  --radius-cell: 20px;
+
+  --dur-fast: 160ms;
+  --dur-mid: 400ms;
+  --dur-slow: 700ms;
   --ease-out: cubic-bezier(0.2, 0.7, 0.1, 1);
 
   --font-sans: "Inter Tight", -apple-system, "Segoe UI", "PingFang SC",
     "Microsoft YaHei", "Noto Sans SC", sans-serif;
 }
 
-/* 主题 neon: 暗底、饱和渐变、白色文字、单一强调色。文字不加投影。 */
+/* 主题 neon: 暗底、饱和渐变、白色文字、单一强调色。文字不加投影。
+ *
+ * muted / faint 不是随手取的透明度: 阶段 6c 会用真实像素算 WCAG 对比度, 而右上角的
+ * 霓虹绿辉光会把底色抬亮。0.72 / 0.52 是在最亮的那块背景上小字号仍 >= 4.5:1 的下限,
+ * 调低这两个值会直接把小字打到不合格。 */
 :root {
   --skin-bg: #0b0b0f;
-  --skin-bg-image: radial-gradient(118% 78% at 82% -8%, rgba(198, 255, 61, 0.22), transparent 58%),
+  --skin-bg-image: radial-gradient(118% 78% at 82% -8%, rgba(198, 255, 61, 0.2), transparent 58%),
     linear-gradient(158deg, #17171f 0%, #0b0b0f 52%, #06060a 100%);
   --skin-ink: #ffffff;
-  --skin-muted: rgba(255, 255, 255, 0.6);
-  --skin-faint: rgba(255, 255, 255, 0.38);
+  --skin-muted: rgba(255, 255, 255, 0.72);
+  --skin-faint: rgba(255, 255, 255, 0.52);
   --skin-accent: #c6ff3d;
   --skin-rule: rgba(255, 255, 255, 0.14);
 }

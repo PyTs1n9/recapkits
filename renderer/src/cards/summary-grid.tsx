@@ -1,17 +1,18 @@
 import { RenderError } from "../errors";
 import { countLines, measure } from "../text-fit";
 import type { BakedCard } from "../types";
+import { CONTENT_WIDTH } from "./cover";
 
-const CONTENT_WIDTH = 1080 - 2 * 72;
 const GAP = 20;
 const CELL_WIDTH = (CONTENT_WIDTH - GAP) / 2;
-const CELL_PAD = 24;
-const HERO_PAD = 32;
+const CELL_PAD = 26;
+const HERO_PAD = 34;
 const CELL_VALUE_SIZE = 72;
 const HERO_VALUE_SIZE = 150;
 const CELL_LABEL_SIZE = 30;
 const HERO_LABEL_SIZE = 38;
 const MAX_FACTS = 9;
+const TITLE_SIZE = 96;
 
 /**
  * `summary-grid`: 两列网格, 第一个 fact 占双列。
@@ -27,10 +28,18 @@ export function SummaryGrid({ card }: { card: BakedCard }) {
     );
   }
 
+  // 偶数个 fact 时最后一格会落单; 让它横跨两列, 网格才是齐的。
+  const wideLast = facts.length > 2 && facts.length % 2 === 0;
+
   facts.forEach((fact, index) => {
     const hero = index === 0;
+    const wide = wideLast && index === facts.length - 1;
     const valueSize = hero ? HERO_VALUE_SIZE : CELL_VALUE_SIZE;
-    const valueWidth = hero ? CONTENT_WIDTH - HERO_PAD * 2 : CELL_WIDTH - CELL_PAD * 2;
+    const valueWidth = hero
+      ? CONTENT_WIDTH - HERO_PAD * 2
+      : wide
+        ? CONTENT_WIDTH - CELL_PAD * 2
+        : CELL_WIDTH - CELL_PAD * 2;
     if (measure(fact.value, valueSize) > valueWidth) {
       throw new RenderError(
         `卡片 ${card.id} 的 summary-grid 第 ${index + 1} 个数值宽 ` +
@@ -46,41 +55,49 @@ export function SummaryGrid({ card }: { card: BakedCard }) {
   });
 
   const title = card.copy.headline ?? "";
-  if (title && countLines(title, CONTENT_WIDTH, 88) > 1) {
-    throw new RenderError(`卡片 ${card.id} 的 summary-grid.headline 在 88px 下超过 1 行`);
+  if (title && countLines(title, CONTENT_WIDTH, TITLE_SIZE) > 1) {
+    throw new RenderError(`卡片 ${card.id} 的 summary-grid.headline 在 ${TITLE_SIZE}px 下超过 1 行`);
   }
 
   return (
     <div class="card summary-grid">
-      {card.copy.kicker ? (
-        <p class="copy summary-grid__kicker" data-fit="kicker">
-          {card.copy.kicker}
-        </p>
-      ) : null}
-      {title ? (
-        <h2 class="copy summary-grid__title" data-fit="headline">
-          {title}
-        </h2>
-      ) : null}
-      <div class="summary-grid__grid">
-        {facts.map((fact, index) => (
-          <div
-            class={
-              index === 0
-                ? "summary-grid__cell summary-grid__cell--hero"
-                : "summary-grid__cell"
-            }
-            key={`${card.id}-${index}`}
-          >
-            <span class="summary-grid__value tnum" data-fit={`fact${index}.value`}>
-              {fact.value}
-            </span>
-            <span class="copy summary-grid__label" data-fit={`fact${index}.label`}>
-              {fact.label}
-            </span>
-          </div>
-        ))}
+      <header class="card__head">
+        {card.copy.kicker ? (
+          <p class="copy card__kicker" data-fit="kicker">
+            {card.copy.kicker}
+          </p>
+        ) : null}
+        <span class="card__rule" aria-hidden="true" />
+        {title ? (
+          <h2 class="copy card__title" data-fit="headline">
+            {title}
+          </h2>
+        ) : null}
+      </header>
+      <div class="card__body">
+        <div class="summary-grid__grid">
+          {facts.map((fact, index) => (
+            <div
+              class={[
+                "summary-grid__cell",
+                index === 0 ? "summary-grid__cell--hero" : "",
+                wideLast && index === facts.length - 1 ? "summary-grid__cell--wide" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              key={`${card.id}-${index}`}
+            >
+              <span class="summary-grid__value tnum" data-fit={`fact${index}.value`}>
+                {fact.value}
+              </span>
+              <span class="copy summary-grid__label" data-fit={`fact${index}.label`}>
+                {fact.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
+      <span class="card__foot" aria-hidden="true" />
     </div>
   );
 }

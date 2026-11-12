@@ -1,0 +1,101 @@
+/* summary-grid: 两列网格, 第一个 fact 占双列。
+ *
+ * 层级靠三件事拉开, 而不是靠更多颜色:
+ * 1) 主角格横跨两列, 数值是其余格子的两倍大;
+ * 2) 主角格有强调色底与更亮的描边, 其余格只有一层白 4.5%;
+ * 3) 数值在上、标签在下, 全部左对齐 —— 九宫格里最怕的是居中对齐造成的参差。
+ */
+
+.summary-grid__grid {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-content: start;
+}
+
+.summary-grid__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 26px 26px 24px;
+  border: 1px solid var(--skin-hairline);
+  border-radius: var(--radius-cell);
+  background: var(--skin-surface);
+}
+
+.summary-grid__cell--hero {
+  grid-column: 1 / -1;
+  gap: 12px;
+  padding: 32px 34px 30px;
+  border-color: rgba(198, 255, 61, 0.22);
+  background: linear-gradient(135deg, rgba(198, 255, 61, 0.1), rgba(198, 255, 61, 0.02) 62%);
+  box-shadow: inset 0 1px 0 rgba(198, 255, 61, 0.14);
+}
+
+.summary-grid__value {
+  font-size: 72px;
+  line-height: 1.04;
+  font-weight: 600;
+  color: var(--skin-ink);
+}
+
+.summary-grid__cell--hero .summary-grid__value {
+  font-size: 150px;
+  font-weight: 700;
+}
+
+.summary-grid__label {
+  font-size: 30px;
+  line-height: 1.35;
+  color: var(--skin-muted);
+}
+
+.summary-grid__cell--hero .summary-grid__label {
+  font-size: 38px;
+  letter-spacing: 0.04em;
+  color: var(--skin-faint);
+}
+
+.stage[data-aspect="4:5"] .summary-grid__grid {
+  gap: 8px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell {
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 14px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell--hero {
+  gap: 8px;
+  padding: 12px 24px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__value {
+  font-size: 52px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell--hero .summary-grid__value {
+  font-size: 88px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__label {
+  font-size: 24px;
+}
+
+.stage[data-aspect="4:5"] .summary-grid__cell--hero .summary-grid__label {
+  font-size: 30px;
+}
+
+/* 偶数个 fact 时最后一格横跨两列, 避免留下半个空格子。 */
+.summary-grid__cell--wide {
+  grid-column: 1 / -1;
+}
+
+/* 4:5 的标题字面下缘会压到主角格: 72px 的行盒装不下 96px 的字形墨迹,
+ * 这里多留 8px, 让视觉间距回到 20px 以上。 */
+.stage[data-aspect="4:5"] .summary-grid .card__body {
+  margin-top: 36px;
+}

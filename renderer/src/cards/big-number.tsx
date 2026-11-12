@@ -7,10 +7,10 @@ const SUB_SIZE = 56;
 const HEADLINE_SIZE = 140;
 
 /**
- * `big-number`: 数字用 --fs-display, 左对齐、底对齐到安全区下沿。
+ * `big-number`: 数字用 --fs-display, 左对齐, 压在底栏之上。
  *
- * 版式是自下而上的一层递进: 数字 (320) -> headline (140) -> sub (56) -> kicker。
- * 越靠下越大, 视线落点就是数字本身。
+ * 版式是自下而上的一层递进: 数字 (320) → headline (140) → sub (56) → kicker。
+ * 越靠下越大, 视线落点就是数字本身。底栏接管"版面底线", 每张卡收在同一条线上。
  *
  * `number` 来自被引洞察的 `headline_fact.display`, 由 Python 侧烘焙时带进来,
  * 所以这个卡片自身不需要认识任何占位符。没有引洞察时退回把 headline 当数字。
@@ -48,24 +48,30 @@ export function BigNumber({ card }: { card: BakedCard }) {
 
   return (
     <div class="card big-number">
-      {card.copy.kicker ? (
-        <p class="copy big-number__kicker" data-fit="kicker">
-          {card.copy.kicker}
+      <header class="card__head">
+        {card.copy.kicker ? (
+          <p class="copy card__kicker" data-fit="kicker">
+            {card.copy.kicker}
+          </p>
+        ) : null}
+        <span class="card__rule" aria-hidden="true" />
+      </header>
+      <div class="card__body big-number__stack">
+        {sub ? (
+          <p class="copy big-number__sub" data-fit="sub">
+            {sub}
+          </p>
+        ) : null}
+        {hasNumber && headline ? (
+          <p class="copy big-number__headline" data-fit="headline">
+            {headline}
+          </p>
+        ) : null}
+        <p class="copy big-number__value tnum" data-fit="number">
+          {hasNumber ? number : headline}
         </p>
-      ) : null}
-      {sub ? (
-        <p class="copy big-number__sub" data-fit="sub">
-          {sub}
-        </p>
-      ) : null}
-      {hasNumber && headline ? (
-        <p class="copy big-number__headline" data-fit="headline">
-          {headline}
-        </p>
-      ) : null}
-      <p class="copy big-number__value tnum" data-fit="number">
-        {hasNumber ? number : headline}
-      </p>
+      </div>
+      <span class="card__foot" aria-hidden="true" />
     </div>
   );
 }

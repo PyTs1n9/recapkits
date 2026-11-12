@@ -1,9 +1,7 @@
 import { renderToString } from "preact-render-to-string";
-import baseCss from "./base.css?raw";
-import cardsCss from "./cards.css?raw";
 import { RenderError } from "./errors";
 import { ASPECTS, Deck } from "./stage";
-import tokensCss from "./tokens.css?raw";
+import { STYLES } from "./styles";
 import type { BakedStory, RenderOptions } from "./types";
 
 /**
@@ -82,7 +80,7 @@ export function renderStory(story: BakedStory, options: RenderOptions): string {
     `<title>${escapeText(title)}</title>`,
     scaleScript(size.width, size.height),
     readyScript(),
-    `<style>${tokensCss}\n${baseCss}\n${cardsCss}</style>`,
+    `<style>${STYLES}</style>`,
     "</head>",
     "<body>",
     body,

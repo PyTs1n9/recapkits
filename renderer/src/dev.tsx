@@ -6,9 +6,8 @@
  * 只有"谁来渲染": 这里用浏览器端的 Preact, 产物用构建期的 renderToString。
  */
 import { render } from "preact";
-import baseCss from "./base.css?raw";
 import { Deck } from "./stage";
-import tokensCss from "./tokens.css?raw";
+import { STYLES } from "./styles";
 import type { Aspect, BakedStory } from "./types";
 import story from "../data/story.json";
 
@@ -17,7 +16,7 @@ const aspect: Aspect = requested === "4:5" ? "4:5" : "9:16";
 const stageHeight = aspect === "4:5" ? 1350 : 1920;
 
 const style = document.createElement("style");
-style.textContent = `${tokensCss}\n${baseCss}`;
+style.textContent = STYLES;
 document.head.appendChild(style);
 
 function fit(): void {

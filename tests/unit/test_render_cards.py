@@ -82,6 +82,8 @@ def test_four_cards_render(tmp_path: Path, cards_payload) -> None:
     assert 'data-cols="53"' in html
     assert "clock__svg" in html
     assert "summary-grid__cell--hero" in html
+    # 六个 fact 时最后一格落单, 用横跨两列补平
+    assert "summary-grid__cell--wide" in html
     assert 'data-fit="row0.label"' in html
     assert "一个特别特别长的仓库名字" in html
 

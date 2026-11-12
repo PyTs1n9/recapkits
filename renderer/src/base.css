@@ -1,8 +1,12 @@
-/* 重置、舞台几何与卡片版式。
+/* 重置、舞台几何与阅读环境。
  *
  * 每张卡一屏: 竖向滚动 + scroll-snap。舞台尺寸由内联变量给出
  * (--stage-w / --stage-h, 单位 px), 缩放由 main.ts 的 10 行脚本按视口算,
  * 计算公式是 min(视口宽 / 舞台宽, 视口高 / 舞台高), 保证任何比例下都不裁切。
+ *
+ * **背景只允许画在 .stage 上, 不能画在 .card 上。** 阶段 6c 的安全区断言拿
+ * "同主题、同尺寸、无卡片内容"的空白舞台做像素基准; 卡片层新增的任何底纹都会
+ * 在边带里形成差值, 直接判失败。装饰要安全地留在舞台层。
  */
 
 *,
@@ -64,7 +68,37 @@ body {
   font-kerning: normal;
 }
 
-/* 卡片: 所有卡片共享安全区与左右外边距, 只换内部排布。 */
+/* 第二层光: 左下角一盏冷调补光。单光源的渐变会让整张卡看起来是"贴"在背景上的,
+ * 两盏不同色温的光才有纵深。 */
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(64% 46% at 8% 104%, rgba(198, 255, 61, 0.09), transparent 66%),
+    radial-gradient(52% 40% at 96% 62%, rgba(120, 170, 255, 0.05), transparent 70%);
+  pointer-events: none;
+}
+
+/* 纵向栅格: 每 270px 一条 1px 的极淡竖线, 上部可见、向下淡出。
+ * 它只是"这张纸有刻度"的暗示, 不承载任何数据。 */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.035) 0 1px,
+    transparent 1px 270px
+  );
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.35) 58%, transparent 86%);
+  pointer-events: none;
+}
+
+/* 卡片: 六张卡共享安全区、左右外边距与一条"抬头 → 正文 → 底栏"的骨架,
+ * 只换内部排布。 */
 .card {
   position: absolute;
   inset: 0;
@@ -75,7 +109,7 @@ body {
 
 /* 数字排版: 等宽数字 + 收紧字距。6c 的测量标记是 data-fit 属性, 不是这个类。 */
 .tnum {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: var(--track-tight);
 }
 
@@ -88,77 +122,13 @@ body {
   text-wrap: pretty;
 }
 
-/* ---------- cover ---------- */
-
-.cover__kicker {
-  margin: 0;
-  font-size: var(--fs-caption);
-  line-height: 1.2;
-  letter-spacing: 0.16em;
-  color: var(--skin-accent);
+/* 键盘可达性: 预览页里 Tab 到卡片时给一个可见焦点, 截图不会出现它。 */
+.stage:focus-visible {
+  outline: 2px solid var(--skin-accent);
+  outline-offset: -8px;
 }
 
-.cover__year {
-  margin: 0;
-  margin-top: 104px;
-  font-size: var(--fs-display);
-  line-height: 0.84;
-  font-weight: 700;
-  color: var(--skin-ink);
-}
-
-.cover__sub {
-  margin: 56px 0 0;
-  font-size: var(--fs-lead);
-  line-height: 1.24;
-  color: var(--skin-muted);
-}
-
-.cover__rule {
-  margin: auto 0 0;
-  height: 2px;
-  width: 168px;
+::selection {
   background: var(--skin-accent);
-}
-
-/* ---------- big-number ---------- */
-
-.big-number {
-  justify-content: flex-end;
-}
-
-.big-number__kicker {
-  position: absolute;
-  top: var(--safe-top);
-  left: var(--margin);
-  margin: 0;
-  font-size: var(--fs-micro);
-  line-height: 1.2;
-  letter-spacing: 0.18em;
-  color: var(--skin-faint);
-}
-
-.big-number__sub {
-  margin: 0 0 24px;
-  font-size: var(--fs-body);
-  line-height: 1.36;
-  color: var(--skin-muted);
-}
-
-.big-number__headline {
-  margin: 0 0 8px;
-  font-size: var(--fs-h2);
-  line-height: 1.04;
-  font-weight: 600;
-  color: var(--skin-ink);
-}
-
-.big-number__value {
-  /* line-height 0.9 + 基线补偿: 行盒底落在安全区下沿时, CJK 字形仍会向下溢出。
-   * 补偿值是 token, 换字体只改 tokens.css 里的 --display-baseline-shift。 */
-  margin: 0 0 var(--display-baseline-shift);
-  font-size: var(--fs-display);
-  line-height: 0.9;
-  font-weight: 700;
-  color: var(--skin-ink);
+  color: #0b0b0f;
 }

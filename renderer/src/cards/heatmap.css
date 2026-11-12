@@ -1,0 +1,113 @@
+/* heatmap: 53×7 的日历格, 装在一个面板里。
+ *
+ * 900×118 的格阵单独放在 1080×1920 的画布上会像一条浮着的线。给它一个面板边框
+ * 与内阴影, 它才成为一件"被装裱起来的图表": 面板宽 932 = 900 + 两侧各 16,
+ * 居中后左右各留 74px, 仍在 72px 的安全区之内。
+ *
+ * 颜色只用一个色相的四个档位 (强调色的 22% / 40% / 68% / 100%), "零"用一层
+ * 极淡的白, "未发生"完全透明 —— 三者在视觉上必须能分开。
+ */
+
+/* 900x118 的格阵很轻, 贴在标题下面会留下大半屏的空白; 垂直居中、并略微上移
+ * (底部多留 40px), 上下留白才接近, 面板也读得出"被装裱在页面中央"的意图。 */
+.heatmap__body {
+  justify-content: center;
+  padding-bottom: 40px;
+}
+
+.heatmap__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 16px;
+  border: 1px solid var(--skin-hairline);
+  border-radius: var(--radius-panel);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 30px 70px rgba(0, 0, 0, 0.35);
+}
+
+.heatmap__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 16px);
+  grid-template-rows: repeat(7, 16px);
+  gap: 1px;
+}
+
+.heatmap__cell {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 窗口之外的日期: 只有一圈 1px 的描边, 与"零值"的实心淡块区分开。 */
+.heatmap__cell--empty {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.heatmap__cell--zero {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.heatmap__cell--l1 {
+  background: rgba(198, 255, 61, 0.24);
+}
+
+.heatmap__cell--l2 {
+  background: rgba(198, 255, 61, 0.42);
+}
+
+.heatmap__cell--l3 {
+  background: rgba(198, 255, 61, 0.7);
+}
+
+.heatmap__cell--l4 {
+  background: rgba(198, 255, 61, 1);
+}
+
+/* 图例贴着面板右下角, 不抢格阵的视线。 */
+.heatmap__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 0 4px 2px;
+  font-size: 24px;
+  line-height: 1.2;
+  color: var(--skin-faint);
+}
+
+.heatmap__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.heatmap__caveat {
+  max-width: 760px;
+  margin: 26px auto 0;
+  font-size: 32px;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--skin-muted);
+}
+
+.stage[data-aspect="4:5"] .heatmap__panel {
+  gap: 18px;
+  padding: 12px;
+  border-radius: 22px;
+}
+
+.stage[data-aspect="4:5"] .heatmap__foot {
+  font-size: 20px;
+}
+
+.stage[data-aspect="4:5"] .heatmap__caveat {
+  margin-top: 20px;
+  font-size: 28px;
+}

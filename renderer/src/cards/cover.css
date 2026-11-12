@@ -1,0 +1,51 @@
+/* cover: 年份是一块实心的字面, 不靠图形撑场。
+ *
+ * 版面从上到下: kicker → 细分隔线 → 年份 → 一道强调色基座 → 副标题 → 底栏。
+ * 基座是这张卡的记忆点: 它把 320px 的字面"托"起来, 而不是让文字浮在渐变里。
+ */
+
+.cover__year {
+  margin: 96px 0 0;
+  font-size: var(--fs-display);
+  line-height: 0.82;
+  font-weight: 700;
+  color: var(--skin-ink);
+}
+
+.cover__plinth {
+  width: 240px;
+  height: 3px;
+  margin-top: 44px;
+  background: var(--skin-accent);
+  border-radius: 2px;
+}
+
+.cover__sub {
+  max-width: 880px;
+  margin: 44px 0 0;
+  font-size: var(--fs-lead);
+  line-height: 1.28;
+  color: var(--skin-muted);
+}
+
+/* 封面独占一屏, 底栏给得更重: 168px 的实心条而不是通用的 56px。 */
+.cover .card__foot::before {
+  width: 168px;
+  height: 3px;
+}
+
+.stage[data-aspect="4:5"] .cover__year {
+  margin-top: 72px;
+  font-size: 260px;
+}
+
+.stage[data-aspect="4:5"] .cover__plinth {
+  width: 180px;
+  margin-top: 34px;
+}
+
+.stage[data-aspect="4:5"] .cover__sub {
+  max-width: 720px;
+  margin-top: 34px;
+  font-size: 64px;
+}

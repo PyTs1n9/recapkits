@@ -1,0 +1,86 @@
+/* ranking: 3–5 行, 序号 / 名称 / 数值三列。
+ *
+ * 行与行之间只有 1px 细线, 靠字号 (56 / 72) 与右对齐的等宽数字建立秩序;
+ * 第一名用强调色标序号, 其余用淡色 —— 这是整张卡上唯一用色的地方。
+ */
+
+.ranking__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking__body {
+  justify-content: center;
+}
+
+.ranking__row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 28px;
+  padding: 30px 0;
+  border-top: 1px solid var(--skin-hairline);
+}
+
+.ranking__row:last-child {
+  border-bottom: 1px solid var(--skin-hairline);
+}
+
+.ranking__index {
+  font-size: var(--fs-caption);
+  line-height: 1.2;
+  font-weight: 500;
+  color: var(--skin-faint);
+}
+
+.ranking__row:first-child .ranking__index {
+  color: var(--skin-accent);
+}
+
+.ranking__label {
+  min-width: 0;
+  font-size: var(--fs-body);
+  line-height: 1.26;
+  color: var(--skin-ink);
+}
+
+.ranking__value {
+  text-align: right;
+  font-size: 72px;
+  line-height: 1.1;
+  font-weight: 600;
+  color: var(--skin-ink);
+  white-space: nowrap;
+}
+
+.ranking__unit {
+  margin-left: 10px;
+  font-size: 34px;
+  font-weight: 400;
+  color: var(--skin-muted);
+}
+
+.stage[data-aspect="4:5"] .ranking__row {
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 20px;
+  padding: 20px 0;
+}
+
+.stage[data-aspect="4:5"] .ranking__index {
+  font-size: 34px;
+}
+
+.stage[data-aspect="4:5"] .ranking__label {
+  font-size: 48px;
+}
+
+.stage[data-aspect="4:5"] .ranking__value {
+  font-size: 60px;
+}
+
+.stage[data-aspect="4:5"] .ranking__unit {
+  font-size: 30px;
+}

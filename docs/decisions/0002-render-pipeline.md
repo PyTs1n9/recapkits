@@ -56,8 +56,9 @@ Preact 已打进 bundle）。Python 不拼 HTML 字符串。
 
 **代价：** `recap render` 需要环境里有 `node`。这是继 `git` 之后第二个外部依赖，
 `doctor` 会报出它的**绝对路径与版本**（只报"可用"无法区分 nvm / 系统包管理器 / IDE
-内置运行时）。产物本身没有运行时 JS —— 唯一的 `<script>` 是十行缩放代码，放在
-`<head>` 里，不参与内容渲染。
+内置运行时）。产物本身没有运行时 JS —— 只有两段十几行的 `<script>`，都在 `<head>` 里：
+一段按视口算缩放，一段在两帧之后写 `data-render-ready`（PNG 截图据此判断可以按快门）。
+两段都不参与内容渲染。
 
 **快速失败：** `require_node()` 在 `recap <路径>` 的第一条语句执行，早于工作区读取、
 导入、建库与洞察计算；`recap render` / `recap preview` 也在读取 `story.json` 与

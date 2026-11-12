@@ -1,8 +1,8 @@
 import { RenderError } from "../errors";
 import { countLines } from "../text-fit";
 import type { BakedCard } from "../types";
+import { CONTENT_WIDTH } from "./cover";
 
-const CONTENT_WIDTH = 1080 - 2 * 72;
 const DAY_MS = 86_400_000;
 const TITLE_SIZE = 96;
 const SUB_SIZE = 40;
@@ -56,10 +56,12 @@ function buildCells(keys: string[], values: number[], year: number): { cells: Ce
 }
 
 /**
- * `heatmap`: 53 列 × 7 行（闰年且 1 月 1 日为周日时 54 列）。
+ * `heatmap`: 53 列 × 7 行（闰年且 1 月 1 日为周日时 54 列）, 装在面板里。
  *
  * 序列只覆盖审查窗口; 窗口之外的日期**不画格子**, 而不是画成 0。这两件事必须
  * 在视觉上可区分, 否则"还没发生"会被读成"什么都没做"。
+ *
+ * 面板宽 = 格阵 900 + 两侧各 16 = 932, 居中后左右各 74px, 仍在 72px 安全区内。
  */
 export function Heatmap({ card, year }: { card: BakedCard; year: number }) {
   const series = card.series;
@@ -86,45 +88,50 @@ export function Heatmap({ card, year }: { card: BakedCard; year: number }) {
 
   return (
     <div class="card heatmap">
-      {card.copy.kicker ? (
-        <p class="copy heatmap__kicker" data-fit="kicker">
-          {card.copy.kicker}
-        </p>
-      ) : null}
-      {headline ? (
-        <h2 class="copy heatmap__title" data-fit="headline">
-          {headline}
-        </h2>
-      ) : null}
-      {sub ? (
-        <p class="copy heatmap__sub" data-fit="sub">
-          {sub}
-        </p>
-      ) : null}
+      <header class="card__head">
+        {card.copy.kicker ? (
+          <p class="copy card__kicker" data-fit="kicker">
+            {card.copy.kicker}
+          </p>
+        ) : null}
+        <span class="card__rule" aria-hidden="true" />
+        {headline ? (
+          <h2 class="copy card__title" data-fit="headline">
+            {headline}
+          </h2>
+        ) : null}
+        {sub ? (
+          <p class="copy card__sub" data-fit="sub">
+            {sub}
+          </p>
+        ) : null}
+      </header>
 
-      <div class="heatmap__body">
-        <div class="heatmap__grid" style={`--cols:${cols}`} data-cols={cols}>
-          {cells.map((cell, index) => (
-            <span
-              key={`${card.id}-${index}`}
-              class={
-                cell.empty
-                  ? "heatmap__cell heatmap__cell--empty"
-                  : cell.level === 0
-                    ? "heatmap__cell heatmap__cell--zero"
-                    : `heatmap__cell heatmap__cell--l${cell.level}`
-              }
-              style={`grid-column:${cell.column + 1};grid-row:${cell.row + 1}`}
-              data-empty={cell.empty ? "true" : undefined}
-            />
-          ))}
-        </div>
-        <div class="heatmap__foot">
-          <span>少</span>
-          <span class="heatmap__swatch heatmap__cell--zero" />
-          <span class="heatmap__swatch heatmap__cell--l2" />
-          <span class="heatmap__swatch heatmap__cell--l4" />
-          <span>多</span>
+      <div class="card__body heatmap__body">
+        <div class="heatmap__panel">
+          <div class="heatmap__grid" style={`--cols:${cols}`} data-cols={cols}>
+            {cells.map((cell, index) => (
+              <span
+                key={`${card.id}-${index}`}
+                class={
+                  cell.empty
+                    ? "heatmap__cell heatmap__cell--empty"
+                    : cell.level === 0
+                      ? "heatmap__cell heatmap__cell--zero"
+                      : `heatmap__cell heatmap__cell--l${cell.level}`
+                }
+                style={`grid-column:${cell.column + 1};grid-row:${cell.row + 1}`}
+                data-empty={cell.empty ? "true" : undefined}
+              />
+            ))}
+          </div>
+          <div class="heatmap__foot">
+            <span>少</span>
+            <span class="heatmap__swatch heatmap__cell--zero" />
+            <span class="heatmap__swatch heatmap__cell--l2" />
+            <span class="heatmap__swatch heatmap__cell--l4" />
+            <span>多</span>
+          </div>
         </div>
         {emptyYear ? (
           <p class="copy heatmap__caveat" data-fit="caveat">
@@ -132,6 +139,8 @@ export function Heatmap({ card, year }: { card: BakedCard; year: number }) {
           </p>
         ) : null}
       </div>
+
+      <span class="card__foot" aria-hidden="true" />
     </div>
   );
 }

@@ -1,0 +1,139 @@
+/* 六张卡共用的版面骨架: 抬头 (kicker / 细分隔线 / 标题 / 副标题) → 正文 → 底栏。
+ *
+ * 骨架的意义是让六张卡看起来属于同一本册子: 标题永远从同一条基线上起, 底栏永远
+ * 压在同一条线上, 只有正文区在变。所以这里只放"跨卡一致"的东西, 任何与具体卡型
+ * 有关的尺寸都留在各自的文件里。
+ */
+
+.card__head {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+}
+
+/* kicker 前面那道短横是整套版式的识别符: 六张卡都在同一位置、同一长度。 */
+.card__kicker {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  font-size: var(--fs-micro);
+  line-height: 1.2;
+  letter-spacing: var(--track-wide);
+  color: var(--skin-faint);
+}
+
+.card__kicker::before {
+  content: "";
+  flex: none;
+  width: 40px;
+  height: 2px;
+  background: var(--skin-accent);
+}
+
+/* 细分隔线: 左实右虚, 给抬头一个收口, 又不至于把画面切成两半。 */
+.card__rule {
+  height: 1px;
+  margin-top: var(--rule-gap);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.26) 0%,
+    rgba(255, 255, 255, 0.08) 58%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.card__title {
+  margin: var(--head-gap) 0 0;
+  font-size: 96px;
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--skin-ink);
+}
+
+/* 副标题限宽: 936px 通栏读起来像正文段落, 收到 840px 更像图注。 */
+.card__sub {
+  max-width: 840px;
+  margin: var(--sub-gap) 0 0;
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--skin-muted);
+}
+
+.card__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: var(--body-gap);
+}
+
+/* 底栏: 一截实心强调色 + 一条淡出细线, 与抬头那道短横呼应, 把版面关起来。
+ * 留 10px 下边距: 内容底边不贴安全区下沿, 给 6c 的边带扫描留出抗锯齿余量。 */
+.card__foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 18px;
+  margin-top: auto;
+  padding-bottom: 10px;
+}
+
+.card__foot::before {
+  content: "";
+  flex: none;
+  width: 56px;
+  height: 2px;
+  background: var(--skin-accent);
+}
+
+.card__foot::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, var(--skin-hairline), rgba(255, 255, 255, 0.02));
+}
+
+/* ---------- 4:5 紧凑模式 ----------
+ * 舞台从 1920 降到 1350, 安全区仍是上下各 240, 内容高度只剩 870。
+ * 只下调字号与间距, 不动任何几何 (单元格、楔形、面板圆角)。
+ */
+
+.stage[data-aspect="4:5"] .card__kicker {
+  gap: 14px;
+  font-size: 24px;
+}
+
+.stage[data-aspect="4:5"] .card__kicker::before {
+  width: 32px;
+}
+
+.stage[data-aspect="4:5"] .card__rule {
+  margin-top: 18px;
+}
+
+.stage[data-aspect="4:5"] .card__title {
+  margin-top: 22px;
+  font-size: 68px;
+}
+
+.stage[data-aspect="4:5"] .card__sub {
+  max-width: 760px;
+  margin-top: 16px;
+  font-size: 34px;
+  line-height: 1.45;
+}
+
+.stage[data-aspect="4:5"] .card__body {
+  margin-top: 28px;
+}
+
+.stage[data-aspect="4:5"] .card__foot {
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.stage[data-aspect="4:5"] .card__foot::before {
+  width: 40px;
+}

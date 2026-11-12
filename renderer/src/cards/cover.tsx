@@ -8,10 +8,11 @@ const YEAR_SIZE = 320;
 const SUB_SIZE = 88;
 
 /**
- * `cover`: 年份巨型字号占满上半屏, kicker 在安全区顶部, 无装饰图形。
+ * `cover`: 年份巨型字号占满上半屏, 下面是强调色基座与副标题。
  *
- * 年份按单行校验: 4 位数字在 320px 下约 704px, 放得下; 换成一段长文案则明确报错,
- * 而不是让它悄悄换行把上半屏挤满。
+ * 版面骨架与其他五张卡一致 (kicker → 细分隔线 → 标题 → 副标题 → 底栏), 只是
+ * "标题"这一层换成 320px 的年份。年份按单行校验: 4 位数字在 320px 下约 704px,
+ * 放得下; 换成一段长文案则明确报错, 而不是让它悄悄换行把上半屏挤满。
  */
 export function Cover({ card }: { card: BakedCard }) {
   const year = card.copy.headline ?? "";
@@ -31,20 +32,24 @@ export function Cover({ card }: { card: BakedCard }) {
 
   return (
     <div class="card cover">
-      {card.copy.kicker ? (
-        <p class="copy cover__kicker" data-fit="kicker">
-          {card.copy.kicker}
-        </p>
-      ) : null}
+      <header class="card__head">
+        {card.copy.kicker ? (
+          <p class="copy card__kicker" data-fit="kicker">
+            {card.copy.kicker}
+          </p>
+        ) : null}
+        <span class="card__rule" aria-hidden="true" />
+      </header>
       <h1 class="copy cover__year tnum" data-fit="headline">
         {year}
       </h1>
+      <span class="cover__plinth" aria-hidden="true" />
       {sub ? (
         <p class="copy cover__sub" data-fit="sub">
           {sub}
         </p>
       ) : null}
-      <div class="cover__rule" aria-hidden="true" />
+      <span class="card__foot" aria-hidden="true" />
     </div>
   );
 }

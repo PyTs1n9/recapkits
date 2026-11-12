@@ -1,15 +1,15 @@
 import { RenderError } from "../errors";
 import { countLines, measure } from "../text-fit";
 import type { BakedCard, BakedRow } from "../types";
+import { CONTENT_WIDTH } from "./cover";
 
-const CONTENT_WIDTH = 1080 - 2 * 72;
-const INDEX_WIDTH = 64;
+const INDEX_WIDTH = 76;
 const VALUE_WIDTH = 220;
-const GAP = 24;
+const GAP = 28;
 const LABEL_WIDTH = CONTENT_WIDTH - INDEX_WIDTH - VALUE_WIDTH - GAP * 2;
 const LABEL_SIZE = 56;
 const VALUE_SIZE = 72;
-const UNIT_SIZE = 36;
+const UNIT_SIZE = 34;
 const MAX_ROWS = 5;
 
 /** count 是唯一需要补口语单位的类型; 其余 display 已经自带单位。 */
@@ -26,7 +26,7 @@ function checkRow(cardId: string, index: number, row: BakedRow): void {
     );
   }
   const suffix = unitSuffix(row.unit);
-  const valueWidth = measure(row.value, VALUE_SIZE) + (suffix ? measure(suffix, UNIT_SIZE) + 8 : 0);
+  const valueWidth = measure(row.value, VALUE_SIZE) + (suffix ? measure(suffix, UNIT_SIZE) + 10 : 0);
   if (valueWidth > VALUE_WIDTH) {
     throw new RenderError(
       `卡片 ${cardId} 的 ranking 第 ${index + 1} 行数值宽 ${Math.round(valueWidth)}px, ` +
@@ -36,10 +36,11 @@ function checkRow(cardId: string, index: number, row: BakedRow): void {
 }
 
 /**
- * `ranking`: 3–5 行, 序号 + 名称 + 数值。
+ * `ranking`: 3–5 行, 序号 + 名称 + 数值, 三列靠基线对齐。
  *
  * 只有 1 行时也照常渲染, 不拉伸、不补空行: 单值是一个合法事实, 不是缺数据。
  * 名称按字符断行(继承 .copy), 最多两行; 超过就报错, 不截断。
+ * 第一名用强调色标序号, 其余用淡色 —— 整张卡只有这一处用色。
  */
 export function Ranking({ card }: { card: BakedCard }) {
   const rows = (card.rows ?? []).slice(0, MAX_ROWS);
@@ -61,39 +62,45 @@ export function Ranking({ card }: { card: BakedCard }) {
 
   return (
     <div class="card ranking">
-      {card.copy.kicker ? (
-        <p class="copy ranking__kicker" data-fit="kicker">
-          {card.copy.kicker}
-        </p>
-      ) : null}
-      {headline ? (
-        <h2 class="copy ranking__title" data-fit="headline">
-          {headline}
-        </h2>
-      ) : null}
-      {sub ? (
-        <p class="copy ranking__sub" data-fit="sub">
-          {sub}
-        </p>
-      ) : null}
-      <ol class="ranking__list">
-        {rows.map((row, index) => (
-          <li class="ranking__row" key={`${card.id}-${index}`}>
-            <span class="ranking__index tnum" data-fit={`row${index}.index`}>
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span class="copy ranking__label" data-fit={`row${index}.label`}>
-              {row.label}
-            </span>
-            <span class="ranking__value tnum" data-fit={`row${index}.value`}>
-              {row.value}
-              {unitSuffix(row.unit) ? (
-                <span class="ranking__unit">{unitSuffix(row.unit)}</span>
-              ) : null}
-            </span>
-          </li>
-        ))}
-      </ol>
+      <header class="card__head">
+        {card.copy.kicker ? (
+          <p class="copy card__kicker" data-fit="kicker">
+            {card.copy.kicker}
+          </p>
+        ) : null}
+        <span class="card__rule" aria-hidden="true" />
+        {headline ? (
+          <h2 class="copy card__title" data-fit="headline">
+            {headline}
+          </h2>
+        ) : null}
+        {sub ? (
+          <p class="copy card__sub" data-fit="sub">
+            {sub}
+          </p>
+        ) : null}
+      </header>
+      <div class="card__body ranking__body">
+        <ol class="ranking__list">
+          {rows.map((row, index) => (
+            <li class="ranking__row" key={`${card.id}-${index}`}>
+              <span class="ranking__index tnum" data-fit={`row${index}.index`}>
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span class="copy ranking__label" data-fit={`row${index}.label`}>
+                {row.label}
+              </span>
+              <span class="ranking__value tnum" data-fit={`row${index}.value`}>
+                {row.value}
+                {unitSuffix(row.unit) ? (
+                  <span class="ranking__unit">{unitSuffix(row.unit)}</span>
+                ) : null}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <span class="card__foot" aria-hidden="true" />
     </div>
   );
 }

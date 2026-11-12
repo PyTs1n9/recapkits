@@ -1,0 +1,114 @@
+/* clock: 24 段楔形, 午夜在顶端, 顺时针, 每段 15°。
+ *
+ * 圆环本身只有一圈细线定界 (r=430), 内圈是一块浅色圆盘, 把"最活跃小时"压在圆心;
+ * 四个方位刻度让"午夜在顶端"这件事不用文字也读得出来。
+ * 楔形长度固定, 强度靠透明度 —— 长度会让人误读成"多少小时", 透明度只表达强弱。
+ */
+
+.clock__body {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.clock__dial {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 圆心后面那一团极淡的绿光, 让圆盘从背景里浮出来。 */
+.clock__dial::before {
+  content: "";
+  position: absolute;
+  width: 640px;
+  height: 640px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(198, 255, 61, 0.1), transparent 62%);
+  pointer-events: none;
+}
+
+.clock__svg {
+  position: relative;
+  width: 900px;
+  height: 900px;
+}
+
+.clock__ring {
+  fill: none;
+  stroke: var(--skin-accent);
+  stroke-width: 3;
+  opacity: 0.45;
+}
+
+.clock__bounds {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+}
+
+.clock__disc {
+  fill: rgba(255, 255, 255, 0.035);
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+}
+
+.clock__wedge {
+  fill: var(--skin-accent);
+}
+
+/* 某小时为 0: 楔形退化成一条线。这不是缺数据, 是"确实没有事件"。 */
+.clock__zero {
+  stroke: var(--skin-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.4;
+}
+
+/* 四个方位刻度: 只需看见"顶上是午夜", 不需要文字。 */
+.clock__tick {
+  stroke: var(--skin-accent-line);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.clock__peak {
+  font-size: 120px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  fill: var(--skin-ink);
+  text-anchor: middle;
+}
+
+.clock__peak-label {
+  font-size: 28px;
+  letter-spacing: var(--track-wide);
+  fill: var(--skin-faint);
+  text-anchor: middle;
+}
+
+.clock__caption {
+  max-width: 760px;
+  margin: 34px auto 0;
+  font-size: 36px;
+  line-height: 1.45;
+  color: var(--skin-muted);
+}
+
+/* 4:5 的正文区只有 687px: 620 的圆盘加图注会顶穿底栏, 收到 560 才留得出气口。 */
+.stage[data-aspect="4:5"] .clock__svg {
+  width: 560px;
+  height: 560px;
+}
+
+.stage[data-aspect="4:5"] .clock__dial::before {
+  width: 420px;
+  height: 420px;
+}
+
+.stage[data-aspect="4:5"] .clock__caption {
+  max-width: 640px;
+  margin-top: 14px;
+  font-size: 30px;
+}
