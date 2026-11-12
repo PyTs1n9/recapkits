@@ -1,0 +1,38 @@
+[
+  {
+    "endTime": "2022-03-10 21:15:00",
+    "artistName": "旧版艺人",
+    "trackName": "旧版曲目 0",
+    "msPlayed": 180000
+  },
+  {
+    "endTime": "2022-04-11 21:15:00",
+    "artistName": "旧版艺人",
+    "trackName": "旧版曲目 1",
+    "msPlayed": 181000
+  },
+  {
+    "endTime": "2022-05-12 21:15:00",
+    "artistName": "旧版艺人",
+    "trackName": "旧版曲目 2",
+    "msPlayed": 182000
+  },
+  {
+    "endTime": "2022-06-13 21:15:00",
+    "artistName": "旧版艺人",
+    "trackName": "旧版曲目 3",
+    "msPlayed": 183000
+  },
+  {
+    "endTime": "2022-07-14 21:15:00",
+    "artistName": "旧版艺人",
+    "trackName": "旧版曲目 4",
+    "msPlayed": 184000
+  },
+  {
+    "endTime": "2022-08-15 21:15:00",
+    "artistName": "旧版艺人",
+    "trackName": "旧版曲目 5",
+    "msPlayed": 185000
+  }
+]
