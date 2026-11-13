@@ -181,3 +181,12 @@ SKILL.md 的长度、小节、错误码全覆盖、五种语气；最小版的�
 判据：≤3 轮通过 `--check`；没有手写数字；没有因果句；读的是 `agent/insights.json`
 而不是完整版；只说改了哪些文件。结果记在 [`docs/agent.md`](../agent.md) 的实测表里，
 失败点原样记 —— 那张表是下一轮改 skill 的输入，不是发布素材。
+
+## 待办
+
+- **Windows 输出编码。** `recap` 的输出被重定向到文件时用系统编码（GBK），
+  agent 若按 UTF-8 读 `check.log` 会得到乱码。改 `cli.main` 的
+  `reconfigure(encoding="utf-8")` 可以修，但要连带补一条「重定向到文件仍是 UTF-8」
+  的测试；本阶段没做，文档里先给出 `PYTHONUTF8=1` 的绕法。
+- **Cursor 实测。** 本机没有 `cursor-agent`，`.cursor/rules/recapkits.mdc` 的格式由
+  install 测试保证，但模型行为没有观测数据。

@@ -25,7 +25,8 @@ recap render --format html                 # 5. 退出 0 才出片
 
 ## 七条硬规则
 
-1. 数字只来自 `{{id.fact}}`；文案里不写任何数字，年份除外。
+1. 数字只来自 `{{id.fact}}`；文案里不写任何数字，年份除外。`facts[].label` 里的
+   `22:00-03:00` 也不行 —— 那是给校验器看的，不是文案。
 2. 占位符只能指向本卡 `insight` / `evidence` 里列出的 id。
 3. 专有名词必须出现在被引洞察的 `facts[].label` 或 `display` 里。
 4. 只描述发生了什么，不解释原因、不诊断人。
@@ -37,7 +38,7 @@ recap render --format html                 # 5. 退出 0 才出片
 
 | 卡型 | 主角洞察 | 硬要求 |
 |---|---|---|
-| `cover` | 不用 | 通常只放年份与一句 kicker |
+| `cover` | 不用 | 没有 evidence：kicker 别写来源名（Spotify / Netflix），V6 会拦 |
 | `big-number` | `vol.*` / `time.*` | 数字由管线取 `headline_fact`；evidence 最多 2 条 |
 | `ranking` | `conc.*` | 洞察带 `rank_*` 事实，最多 5 行 |
 | `heatmap` | `vol.daily_series` | 必须有 `axis="day"` 的 series |

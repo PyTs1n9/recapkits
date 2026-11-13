@@ -133,52 +133,42 @@ recap init --local-only     # 已有工作区也可以切换
 
 | 日期 | runtime | 版本 | 校验轮次 | 首轮可渲染 | 主要失败点 |
 |---|---|---|---|---|---|
-| 2026-11-13 | WorkBuddy 内置 agent | 本会话 | 2 | 是 | 两轮零错误；另注入 3 类错误（4 处），`hint` 均可直接执行 |
-| — | Claude Code | 2.1.177 | — | — | 未测：CLI 启动即被本机 Program Blacklist 拦（要调 `reg.exe`） |
+| 2026-11-13 | Claude 桌面端（Cowork） | Sonnet 5.5 Medium | 2 | 否 | `NAME_NOT_IN_EVIDENCE`：cover kicker 写「Spotify · 本地生成」；`NUMBER_NOT_IN_PLACEHOLDER` ×4：照抄 `facts[].label` 里的 `22:00-03:00` |
 | — | Cursor | 未安装 | — | — | 未测：本机没有 `cursor-agent`，GUI 无 headless 模式 |
 
-**第一行是替代证据，不是原定目标。** 它能给出一个下界：如果连一个已经读过仓库的
-agent 都要多轮，说明 skill 写得不够清楚。反过来不成立 —— 它知道所有实现细节，测不出
-「第一次见到这份 skill」的困惑。两个目标 runtime 的实测仍是发布前的待办。
+这次不是 Claude Code CLI：桌面端不自动加载 `.claude/skills/`，agent 是按
+`PROMPT.md` 的指引直接读 SKILL.md。所以它测的是「SKILL.md 的内容够不够写对」，
+与 Claude Code 的差别只在「谁把文件递到眼前」。
 
-一次真实运行（spotify 导出，`recap insights --top 10`，真名载荷）：
+运行方式：`agent-trial/` 独立工作区，spotify 导出，`recap insights --top 10`，真名载荷。
+首轮 5 处问题，第 2 轮通过（`check.log` 原样保留）。
 
-```bash
-recap init --tz Asia/Shanghai --year 2024
-recap import tests/fixtures/spotify --source spotify
-recap insights --top 10
-recap skill install --target claude
-```
+**两处失败都不是「模型不会写」，是 skill 没写清楚：**
 
-- **第一轮**：按「两遍法」只写六张卡的 `headline`，`--check` 零错误；
-  同一版本直接 `render --format html` 出片成功（6 张卡，1,468,771 字节）。
-- **第二轮**：补 `sub` / `kicker`，`--check` 仍然零错误。实体名 `The Midnight` 直接
-  写在 `sub` 里，V6 放行 —— 它在 `facts[].label` 里。
-- **对抗补充**：另写一份 `story-bad.json`，注入典型错误，确认 `hint` 可执行：
+1. `cover` 卡没有 `insight` / `evidence`，写「Spotify · 本地生成」必被 V6 拦 ——
+   任何拉丁专有名词都找不到落点。SKILL.md 只说了「通常只放年份与一句 kicker」，
+   没说来源名也在禁区。
+2. `time.hour_rhythm` 的 `headline_fact.label` 是「深夜占比 22:00-03:00」。agent 把
+   这个区间抄进 `sub`，V2 逐个抓出 `22` / `00` / `03` / `00`。规则 1 只说「文案里
+   不写数字」，没提醒**事实的 label 本身可能含数字**。
 
-| 注入的错误 | 校验器输出 | `hint` 是否够用 |
-|---|---|---|
-| `sub` 写「一共 203 次，覆盖 66 个活跃日」 | `NUMBER_NOT_IN_PLACEHOLDER` ×2，逐个指出 `203` / `66` | 是：改成 `{{id.fact}}` |
-| `sub` 写「The Weeknd 占了 …」 | `NAME_NOT_IN_EVIDENCE`，指到 `Weeknd` | 是：换成 facts 里的名字 |
-| `summary-grid` 改成 `big-number`（留 3 条 evidence） | `TYPE_EVIDENCE_MISMATCH`，指出「big-number 用 insight 指定主角」 | 是：换卡型或只留主角 |
+两条已补进 SKILL.md（规则 1 与卡型表的 `cover` 行），下一轮实测应当首轮通过。
+这就是这张表的用法：它记的不是模型分数，是 skill 的漏洞。
 
-跑另外两个 runtime 时，把上面四条命令换成你的导出目录，在 agent 里让它写
-`.recapkits/story.json`，再校验：
+另有一次对抗补充（人工注入，不占 runtime 轮次）：`story-bad.json` 里写死数字、
+编造艺人名、把 `summary-grid` 改成带 3 条 evidence 的 `big-number`，校验器输出
+4 处问题并逐个指出 `got` 与修法，三条 `hint` 都能直接执行。
 
-```bash
-recap story --check .recapkits/story.json --insights .recapkits/agent/insights.json
-```
-
-记录三样：
-
-- **轮次**：从第一次提交到通过，改了几次。
-- **首轮可渲染**：第一次通过的版本能否直接 `render`（有时校验过了，但热力图缺序列、
-  或 `summary-grid` 少证据）。
-- **主要失败点**：原样抄 `code` 与那句 `got`。不要美化 —— 这张表是下一轮改 skill 的
-  输入，不是发布素材。
+跑 Cursor 时把上面流程里的 `skill install` 换成 `--target cursor`，其余相同。
 
 **测试里不调用任何 LLM。** 模型行为是非确定性的，接进 CI 只会得到一条会随机红的
 断言；skill 的质量靠这张表迭代。
+
+### Windows 上的日志编码
+
+`check.log` 里是 GBK 字节：`recap` 的输出被重定向到文件时用的是系统编码。
+读的时候按 GBK 解码，或先 `set PYTHONUTF8=1` 再跑。这一条尚未修，见
+[`decisions/0003-agent-payload.md`](decisions/0003-agent-payload.md) 的待办。
 
 ## 8. 常见失败模式
 
