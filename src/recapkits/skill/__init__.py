@@ -13,6 +13,10 @@ RESOURCE = "SKILL.md"
 
 
 def read_text() -> str:
-    """读同目录的 SKILL.md; 调用方负责决定装到哪里。"""
-    raw = files(__package__).joinpath(RESOURCE).read_text(encoding="utf-8")
+    """读同目录的 SKILL.md; 调用方负责决定装到哪里。
+
+    用 `__name__` 而不是 `__package__`: 包的 `__init__` 里两者相等, 但后者的
+    类型是 `str | None`, 3.11 的 typeshed 会拒绝它作为 `files()` 的参数。
+    """
+    raw = files(__name__).joinpath(RESOURCE).read_text(encoding="utf-8")
     return raw.replace("\r\n", "\n")

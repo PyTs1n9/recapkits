@@ -39,6 +39,9 @@ exclude = ["*.md"]
 [tool.pyright]
 include = ["src"]
 typeCheckingMode = "basic"
+# 与 requires-python 的下限对齐: 本地 venv 是 3.13, 不钉版本会拿 3.13 的
+# typeshed 检查, CI 的 3.11 job 就会红在本地看不见的地方。
+pythonVersion = "3.11"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
