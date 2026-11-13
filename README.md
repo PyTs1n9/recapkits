@@ -101,6 +101,29 @@ uvx --with 'recapkits[png]' recapkits render --format mp4 --aspect 9:16
 `--out` 在 mp4 路径上是**文件**，与 PNG 的目录语义相反。MP4 复用 PNG 的截图链路，所以同样
 需要 Playwright 与浏览器。
 
+## 让 agent 写得更好
+
+校验器能拦住不合格的文案，但它不负责写。把写故事的活交给 Claude Code / Cursor：
+
+```bash
+uvx recapkits skill install --target claude   # 或 cursor / agents / print
+# 在你的 agent 里：按 recapkits skill，把 .recapkits/agent/insights.json 写成
+# .recapkits/story.json
+uvx recapkits story --check .recapkits/story.json --insights .recapkits/agent/insights.json
+```
+
+`recap insights` 会同时写两份：完整版在 `out/`（渲染用），最小版在 `agent/`（给模型）。
+最小版删掉 `score_parts` / `evidence_sql` / `evidence_rows`，约小 15%，但仍是一份合法的
+`insights.json`，agent 写完的故事可以直接用它校验。`recap insights --payload-preview`
+先告诉你发出去多少字节。
+
+不想让模型看见真实仓库名、艺人名：`recap insights --entities=placeholder` 会写一份假名
+载荷并在 `.recapkits/agent/restore.json` 留还原表；出片时
+`recap render --restore .recapkits/agent/restore.json` 把名字换回来。**还原表含原名，
+等于原文，不要分享。** 完全不想外发就 `recap init --local-only`。
+
+细节、失败模式与两个 runtime 的实测表见 [`docs/agent.md`](docs/agent.md)。
+
 ## 已知限制
 
 - **生僻字回退系统字体。** 随包的是 GB/T 2312 一级字（3755 个）+ ASCII + 常用标点；二级字
@@ -180,6 +203,10 @@ uvx recapkits redact --render  # 顺手出 recap-<年份>-redacted.html 与 .mp4
 不识别照片，不处理聊天正文；数字与排名仍是真实的，换名字不等于匿名。
 `redactions.json` 是完整的「原名 → 假名」映射，等于原文，不要分享它。
 细节与逐条证据见 [`docs/privacy.md`](docs/privacy.md)。
+
+要用 agent 写故事时，默认只交出 `agent/insights.json`（最小版）；`--entities=placeholder`
+把它换成假名；`recap init --local-only` 则完全不生成外发载荷。这三层都有测试断言，
+不是文档承诺。
 
 ## 非目标（v1）
 

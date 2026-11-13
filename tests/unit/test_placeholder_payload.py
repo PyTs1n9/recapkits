@@ -146,13 +146,22 @@ def test_the_full_payload_is_untouched(tmp_path: Path, monkeypatch, capsys) -> N
     assert main(["insights", "--top", "10", "--entities=placeholder"]) == 0
 
     assert _sha(root / "out" / "insights.json") == before
-    text = (root / "agent" / "insights.json").read_text(encoding="utf-8")
-    assert "repo-0" not in text
-    assert "repo-1" not in text
-    assert "项目" in text
     assert (root / "agent" / "restore.json").is_file()
     assert (root / "redactions.json").is_file()
     assert "restore.json" in capsys.readouterr().out
+
+
+def test_the_agent_payload_has_no_real_names(tmp_path: Path, monkeypatch, capsys) -> None:
+    """工作区里每个实体名都逐个查一遍, 而不是抽一个 grep。"""
+    monkeypatch.chdir(tmp_path)
+    root = _seed_workspace(tmp_path)
+
+    assert main(["insights", "--top", "10", "--entities=placeholder"]) == 0
+
+    text = (root / "agent" / "insights.json").read_text(encoding="utf-8")
+    assert [name for name in ("repo-0", "repo-1", "repo-2") if name in text] == []
+    assert "项目" in text
+    capsys.readouterr()
 
 
 def test_the_placeholder_payload_still_passes_story_check(

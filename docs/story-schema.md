@@ -169,8 +169,10 @@ recap story --auto --year 2025 --theme neon --tone deadpan       # 换年份 / �
 
 recap insights --md                                            # 同时写 insights.json 与 insights.md
 recap insights --no-md                                         # 只写 JSON
-recap insights --payload-preview                               # 报出含/不含 series 的字节差
+recap insights --payload-preview                               # 报外发清单: 完整版 / agent 版 / 被删字段
+recap insights --entities=placeholder                          # agent 载荷换成假名, 写 agent/restore.json
 recap render --format html --aspect 9:16                        # 出单文件 HTML
+recap render --format html --restore .recapkits/agent/restore.json  # 先把假名 story 还原成真名
 recap render --format png --aspect 4:5                          # 逐卡 PNG 到 out/cards-4x5/
 recap render --format mp4 --aspect 9:16                         # 出 MP4, 需要 ffmpeg 5.1+
 recap preview                                                   # 本地预览, 改文件自动刷新

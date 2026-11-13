@@ -8,15 +8,34 @@
 | # | 对手 | 它能做什么 | 本阶段的控制 | 证据 |
 |---|---|---|---|---|
 | T1 | **我们自己** | 想收数据就得先有服务器、端点或存储桶 | 一个都没有。`src/` 里出现 URL 字面量或出站客户端，CI 直接失败 | `test_core_has_no_outbound_addresses` |
-| T2 | **用户的模型服务** | 用 agent 写故事时会收到载荷 | `--payload-preview` 只报字节数，不打印洞察内容；`--local-only` 与 `--entities=placeholder` 属于阶段 10，**尚未实现** | `test_payload_preview_reports_series_bytes` |
+| T2 | **用户的模型服务** | 用 agent 写故事时会收到载荷 | 三层，默认最严：只写最小版（删 `score_parts` / `evidence_sql` / `evidence_rows`）；`--entities=placeholder` 换成与 `recap redact` 同一本盐的假名；`--local-only` 完全不生成外发载荷。还原只发生在 `render` / `preview` 的数据层，PII 与被抑制的词不进还原表 | `test_insights_writes_a_smaller_agent_payload`、`test_the_agent_payload_can_validate_its_own_story`、`test_the_agent_payload_has_no_real_names`、`test_a_suppressed_name_never_comes_back`、`test_local_mode_writes_no_agent_payload` |
 | T3 | **网络** | 被动观测 | 完整链路在只有 loopback 的 netns 里跑通，HTML 与联网时逐字节相同 | `test_full_chain_is_byte_identical_without_network` |
 | T4 | **视频的观众** | 看到渲染出来的一切 | `recap redact` 换名/移除/清 PII；高敏洞察需 `--allow-sensitive`；PNG 清 `tEXt`/`zTXt`/`iTXt`，MP4 清 `udta` | `test_redacted_pair_has_no_urls_paths_or_home_dirs`、`test_redacted_pair_passes_the_full_validator`、`test_strip_text_chunks_drops_metadata_only`、`test_mp4_structure_is_verified` |
 | T5 | **共用/借用设备** | 读取构建目录 | 所有产物只在当前目录的 `.recapkits/`，没有全局缓存；`init` 把 `.recapkits/` 写进 `.gitignore` | `test_init_writes_config_and_gitignore` |
 | T6 | **未来** | 读到长期留存的数据 | 一个构建目录，没有历史、没有索引、没有后台进程；全项目只有一个命令监听端口，且必须绑 `127.0.0.1` | `test_only_the_preview_server_opens_a_port`、`test_the_preview_server_binds_loopback_only` |
 
-T2 的载荷最小化是 agent 功能的一部分，本阶段没有做；在它落地之前，把
-`insights.json` 交给外部模型就等于把实体名与数字一起交出去 —— 先用
-`recap redact` 生成脱敏版，或者不要把文件发出去。
+T2 的三层控制对应三种场景：
+
+- **默认**：`recap insights` 每次写两份。`out/insights.json` 给渲染，`agent/insights.json`
+  给模型。后者删掉 `score_parts`（打分过程）与 `evidence_sql` / `evidence_rows`（内部
+  审计串），保留 `series` 是因为 heatmap / clock 的校验需要序列 —— 没有它，agent 拿到
+  的载荷校验不了自己写的故事。它仍是一份合法的 `insights.json`。
+- **去名**：`--entities=placeholder` 把实体名与 `conc.*` 的 id 段换成假名，并与
+  `recap redact` 共用 `.recapkits/redactions.json` 这一本盐，所以两份脱敏导出可以比对。
+  原名留在 `agent/restore.json`，它**等于原文**，不能分享。
+- **不出门**：`recap init --local-only` 之后不再写 `agent/`，`--payload-preview`、
+  `--entities=placeholder`、`skill install` 全部报错。这是工作区属性，不是每条命令的
+  开关 —— 会忘的开关不是隐私承诺。
+
+还原只发生在 `render --restore` 与 `preview --restore`，位置在 `validate` 之前：渲染层
+拿到的是烘焙后的字符串，哪一段是假名已经丢了，漏一层就是原名泄漏到画面里。
+
+**PII 与 `redact.txt` 里点名的词不进还原表**，被抑制实体的 id 也不进 —— 顺着 id 还原
+等于绕过抑制表，真名会随真 insights 的 `label` 回到画面。这类故事会校验失败，是失败
+而不是泄漏。设计细节见 [`decisions/0003-agent-payload.md`](decisions/0003-agent-payload.md)。
+
+`render --restore` 用本机真数据烘焙，所以 PII 的保护范围是「外发载荷 + story 文本」，
+不是「片子」。要让产物也不含 PII，用 `recap redact --render`。
 
 ## 2. `recap redact` 做了什么
 
@@ -91,8 +110,9 @@ init -> import spotify -> insights -> story --auto -> render --format html
 
 ## 6. 已知缺口
 
-- T2 的 `--local-only`、`--entities=placeholder`、agent skill：阶段 10。
 - 没有 `recap clean`：删工作区目前就是 `rm -rf .recapkits`（或 Windows 资源管理器）。
 - 真实导出核验尚未开始，见 [`adapters/VERIFICATION.md`](adapters/VERIFICATION.md)。
 - 脱敏后的 PNG / MP4 仍可能通过画面内容泄露信息：脱敏保的是文案与文件名，
   不是像素。发布前逐张过一遍仍是必要的。
+- agent skill 的模型行为只有人工验收（两个 runtime 的实测表在
+  [`agent.md`](agent.md)），测试里不调用 LLM。
