@@ -128,28 +128,52 @@ recap init --local-only     # 已有工作区也可以切换
 
 ## 7. runtime 实测
 
-手工验收，每次只记录事实。判据：≤3 轮通过 `--check`；没有手写数字；没有因果句；
-没有在 JSON 里写 `allow_sensitive`；读的是 `agent/insights.json`。
+判据：≤3 轮通过 `--check`；没有手写数字；没有因果句；没有在 JSON 里写
+`allow_sensitive`；读的是 `agent/insights.json`。每次只记事实。
 
 | 日期 | runtime | 版本 | 校验轮次 | 首轮可渲染 | 主要失败点 |
 |---|---|---|---|---|---|
-| 待填 | Claude Code | 待填 | 待填 | 待填 | 待填 |
-| 待填 | Cursor | 待填 | 待填 | 待填 | 待填 |
+| 2026-11-13 | WorkBuddy 内置 agent | 本会话 | 2 | 是 | 两轮零错误；另注入 3 类错误（4 处），`hint` 均可直接执行 |
+| — | Claude Code | 2.1.177 | — | — | 未测：CLI 启动即被本机 Program Blacklist 拦（要调 `reg.exe`） |
+| — | Cursor | 未安装 | — | — | 未测：本机没有 `cursor-agent`，GUI 无 headless 模式 |
 
-复现步骤（两个 runtime 相同）：
+**第一行是替代证据，不是原定目标。** 它能给出一个下界：如果连一个已经读过仓库的
+agent 都要多轮，说明 skill 写得不够清楚。反过来不成立 —— 它知道所有实现细节，测不出
+「第一次见到这份 skill」的困惑。两个目标 runtime 的实测仍是发布前的待办。
+
+一次真实运行（spotify 导出，`recap insights --top 10`，真名载荷）：
 
 ```bash
 recap init --tz Asia/Shanghai --year 2024
-recap import <导出目录> --source spotify
+recap import tests/fixtures/spotify --source spotify
 recap insights --top 10
-recap skill install --target claude      # 或 cursor
+recap skill install --target claude
 ```
 
-然后在 agent 里让它写 `.recapkits/story.json`，用第 3 节的第 4 条命令校验。记录：
+- **第一轮**：按「两遍法」只写六张卡的 `headline`，`--check` 零错误；
+  同一版本直接 `render --format html` 出片成功（6 张卡，1,468,771 字节）。
+- **第二轮**：补 `sub` / `kicker`，`--check` 仍然零错误。实体名 `The Midnight` 直接
+  写在 `sub` 里，V6 放行 —— 它在 `facts[].label` 里。
+- **对抗补充**：另写一份 `story-bad.json`，注入典型错误，确认 `hint` 可执行：
 
-- **轮次**：从第一次提交到 `--check` 通过，一共改了几次。
-- **首轮可渲染**：第一次通过 `--check` 的版本能不能直接 `render`（有时校验过了，
-  但热力图没序列、或 `summary-grid` 少证据）。
+| 注入的错误 | 校验器输出 | `hint` 是否够用 |
+|---|---|---|
+| `sub` 写「一共 203 次，覆盖 66 个活跃日」 | `NUMBER_NOT_IN_PLACEHOLDER` ×2，逐个指出 `203` / `66` | 是：改成 `{{id.fact}}` |
+| `sub` 写「The Weeknd 占了 …」 | `NAME_NOT_IN_EVIDENCE`，指到 `Weeknd` | 是：换成 facts 里的名字 |
+| `summary-grid` 改成 `big-number`（留 3 条 evidence） | `TYPE_EVIDENCE_MISMATCH`，指出「big-number 用 insight 指定主角」 | 是：换卡型或只留主角 |
+
+跑另外两个 runtime 时，把上面四条命令换成你的导出目录，在 agent 里让它写
+`.recapkits/story.json`，再校验：
+
+```bash
+recap story --check .recapkits/story.json --insights .recapkits/agent/insights.json
+```
+
+记录三样：
+
+- **轮次**：从第一次提交到通过，改了几次。
+- **首轮可渲染**：第一次通过的版本能否直接 `render`（有时校验过了，但热力图缺序列、
+  或 `summary-grid` 少证据）。
 - **主要失败点**：原样抄 `code` 与那句 `got`。不要美化 —— 这张表是下一轮改 skill 的
   输入，不是发布素材。
 
